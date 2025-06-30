@@ -1,0 +1,26 @@
+[
+  {
+    "id": "a1",
+    "name": "绝影lite3-A1",
+    "battery": 78,
+    "latitude": 30.3066,
+    "longitude": 120.0803,
+    "lastUpdate": "2025-06-30T12:00:00Z"
+  },
+  {
+    "id": "a2",
+    "name": "绝影lite3-A2",
+    "battery": 55,
+    "latitude": 30.3067,
+    "longitude": 120.0805,
+    "lastUpdate": "2025-06-30T12:00:00Z"
+  },
+  {
+    "id": "a3",
+    "name": "绝影lite3-A3",
+    "battery": 18,
+    "latitude": 30.3068,
+    "longitude": 120.0807,
+    "lastUpdate": "2025-06-30T12:00:00Z"
+  }
+] 
