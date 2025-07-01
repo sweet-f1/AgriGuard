@@ -84,6 +84,8 @@ struct SidebarMenuRow: View {
 
 struct ContentView: View {
     @State private var selection: Menu? = .dashboard
+    @State private var showWeatherPopup = false
+    @StateObject private var weatherService = WeatherConfig.createWeatherService()
     let mainColor = Color("primaryGreen")
     let selectedBg = Color("selectedGreen")
 
@@ -142,7 +144,7 @@ struct ContentView: View {
                 .navigationTitle("田野看板")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        WeatherAvatarView()
+                        WeatherAvatarView(weatherService: weatherService, showWeatherPopup: $showWeatherPopup)
                     }
                 }
             case .info:
@@ -151,7 +153,7 @@ struct ContentView: View {
                     .navigationTitle("信息面板")
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
-                            WeatherAvatarView()
+                            WeatherAvatarView(weatherService: weatherService, showWeatherPopup: $showWeatherPopup)
                         }
                     }
             case .control:
@@ -160,68 +162,54 @@ struct ContentView: View {
                     .navigationTitle("控制面板")
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
-                            WeatherAvatarView()
+                            WeatherAvatarView(weatherService: weatherService, showWeatherPopup: $showWeatherPopup)
                         }
                     }
             default:
                 Text("请选择功能")
             }
         }
-    }
-}
-
-// 天气和头像组件
-struct WeatherAvatarView: View {
-    var body: some View {
-        HStack(spacing: 13) {
-            // 天气显示
-            HStack(spacing: 8) {
-                // 太阳图标
-                Image(systemName: "sun.max.fill")
-                    .foregroundColor(.orange)
-                    .font(.system(size: 14, weight: .medium))
-                
-                // 温度文字
-                Text("24℃")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.primary)
+        .overlay {
+            // 天气弹窗叠加层
+            if showWeatherPopup {
+                // 透明背景，点击关闭弹窗
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        showWeatherPopup = false
+                    }
+                    .overlay(alignment: .topTrailing) {
+                        WeatherPopupView(weatherService: weatherService, isPresented: $showWeatherPopup)
+                            .padding(.top, 65) // 调整距顶部距离，确保在导航栏下方
+                            .padding(.trailing, 30) // 调整距右侧距离
+                            .transition(.asymmetric(
+                                insertion: .scale(scale: 0.8).combined(with: .opacity),
+                                removal: .scale(scale: 0.8).combined(with: .opacity)
+                            ))
+                            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showWeatherPopup)
+                            .onTapGesture {
+                                // 防止点击弹窗内容时关闭
+                            }
+                    }
+                    .zIndex(1000) // 确保在最顶层
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(.regularMaterial)
-            )
-            
-            // 通知图标
-            Button(action: {
-                // 通知逻辑
-            }) {
-                Circle()
-                    .fill(.regularMaterial)
-                    .frame(width: 36, height: 36)
-                    .overlay(
-                        Image(systemName: "bell")
-                            .foregroundColor(.primary)
-                            .font(.system(size: 14, weight: .regular))
-                    )
-            }
-            .buttonStyle(.plain)
-            
-            // 用户头像
-            Button(action: {
-                // 用户菜单逻辑
-            }) {
-                Image("avatar")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 32, height: 32)
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
+        }
+        .onAppear {
+            // 应用启动时获取天气数据
+            weatherService.fetchCurrentWeather()
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 #Preview(traits:.landscapeLeft) {
     ContentView()
