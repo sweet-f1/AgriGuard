@@ -231,9 +231,9 @@ struct FieldDashboardView: View {
                                 }
                                 VStack(alignment: .leading, spacing: 12) {
                                     EditMapButton(
-                                        icon: "",
+                                        icon: "viewfinder",
                                         iconColor: Color("primaryGreen"),
-                                        borderStyle: StrokeStyle(lineWidth: 2, dash: [6,3]),
+                                        borderStyle: nil,
                                         text: "新增植物",
                                         action: {
                                             if isDrawing {
