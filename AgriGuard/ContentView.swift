@@ -84,8 +84,8 @@ struct SidebarMenuRow: View {
 
 struct ContentView: View {
     @State private var selection: Menu? = .dashboard
-    let mainColor = Color(hex: "#059669")
-    let selectedBg = Color(hex: "#ECFDF5")
+    let mainColor = Color("primaryGreen")
+    let selectedBg = Color("selectedGreen")
 
     var body: some View {
         NavigationSplitView {
@@ -140,17 +140,85 @@ struct ContentView: View {
                     FieldDashboardView()
                 }
                 .navigationTitle("田野看板")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        WeatherAvatarView()
+                    }
+                }
             case .info:
                 Text("信息面板内容")
                     .font(.largeTitle)
                     .navigationTitle("信息面板")
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            WeatherAvatarView()
+                        }
+                    }
             case .control:
                 Text("控制面板内容")
                     .font(.largeTitle)
                     .navigationTitle("控制面板")
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            WeatherAvatarView()
+                        }
+                    }
             default:
                 Text("请选择功能")
             }
+        }
+    }
+}
+
+// 天气和头像组件
+struct WeatherAvatarView: View {
+    var body: some View {
+        HStack(spacing: 13) {
+            // 天气显示
+            HStack(spacing: 8) {
+                // 太阳图标
+                Image(systemName: "sun.max.fill")
+                    .foregroundColor(.orange)
+                    .font(.system(size: 14, weight: .medium))
+                
+                // 温度文字
+                Text("24℃")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.primary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(.regularMaterial)
+            )
+            
+            // 通知图标
+            Button(action: {
+                // 通知逻辑
+            }) {
+                Circle()
+                    .fill(.regularMaterial)
+                    .frame(width: 36, height: 36)
+                    .overlay(
+                        Image(systemName: "bell")
+                            .foregroundColor(.primary)
+                            .font(.system(size: 14, weight: .regular))
+                    )
+            }
+            .buttonStyle(.plain)
+            
+            // 用户头像
+            Button(action: {
+                // 用户菜单逻辑
+            }) {
+                Image("avatar")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 32, height: 32)
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
         }
     }
 }

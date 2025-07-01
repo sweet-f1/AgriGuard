@@ -159,7 +159,7 @@ struct EditMapButton: View {
             }
             .padding(.vertical, 6)
             .padding(.horizontal, 14)
-            .background(isActive ? Color.white : Color.white.opacity(0.9))
+            .background(isActive ? Color("selectedGreen") : Color.white.opacity(0.95))
             .cornerRadius(8)
             .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 1)
         }
@@ -211,8 +211,8 @@ struct FieldDashboardView: View {
                             ZStack {
                                 if let start = drawingStart, let end = drawingEnd {
                                     Rectangle()
-                                        .strokeBorder(Color.green, lineWidth: 2)
-                                        .background(Color.green.opacity(0.2))
+                                        .strokeBorder(Color("primaryGreen"), lineWidth: 2)
+                                        .background(Color("primaryGreen").opacity(0.2))
                                         .frame(
                                             width: abs(end.x - start.x),
                                             height: abs(end.y - start.y)
@@ -232,7 +232,7 @@ struct FieldDashboardView: View {
                                 VStack(alignment: .leading, spacing: 12) {
                                     EditMapButton(
                                         icon: "",
-                                        iconColor: .red,
+                                        iconColor: Color("primaryGreen"),
                                         borderStyle: StrokeStyle(lineWidth: 2, dash: [6,3]),
                                         text: "新增植物",
                                         action: {
@@ -292,9 +292,9 @@ struct FieldDashboardView: View {
                     DogBotListView(bots: botLoader.bots.map { bot in
                         DogBot(name: bot.name, color: {
                             switch bot.battery {
-                            case 61...: return .green
-                            case 21...60: return .orange
-                            default: return .red
+                            case 61...: return Color("dogGreen")
+                            case 21...60: return Color("dogOrange")
+                            default: return Color("dogRed")
                             }
                         }(), icon: "dog.fill")
                     })
