@@ -299,6 +299,13 @@ class WeatherService: ObservableObject {
         }
     }
     
+    // 基于经纬度获取天气
+    func fetchWeatherForCoordinate(latitude: Double, longitude: Double) {
+        let locationString = "\(longitude),\(latitude)" // 和风天气API格式：经度,纬度
+        print("🌍 获取位置天气: 纬度=\(latitude), 经度=\(longitude)")
+        fetchCurrentWeather(location: locationString)
+    }
+    
     private func fetchNowWeather(location: String) async {
         guard let jwtGenerator = jwtGenerator, let jwt = jwtGenerator.generateJWT() else {
             await MainActor.run {
@@ -322,6 +329,7 @@ class WeatherService: ObservableObject {
                     self.currentWeather = weatherResponse.now
                 }
                 print("✅ 当前天气数据获取成功")
+                print("🌤 天气代码: \(weatherResponse.now.icon), 天气描述: \(weatherResponse.now.text)")
             } else {
                 await MainActor.run {
                     let errorMsg = self.getErrorMessage(for: weatherResponse.code)
@@ -353,9 +361,9 @@ class WeatherService: ObservableObject {
             
             if forecastResponse.code == "200" {
                 await MainActor.run {
-                    self.hourlyForecast = Array(forecastResponse.hourly.prefix(5)) // 只取前5个小时
+                    self.hourlyForecast = forecastResponse.hourly // 取完整24小时数据
                 }
-                print("✅ 24小时预报数据获取成功")
+                print("✅ 24小时预报数据获取成功，共\(forecastResponse.hourly.count)条")
             } else {
                 print("❌ 24小时预报API错误: \(forecastResponse.code)")
             }
@@ -381,9 +389,9 @@ class WeatherService: ObservableObject {
             
             if forecastResponse.code == "200" {
                 await MainActor.run {
-                    self.dailyForecast = Array(forecastResponse.daily.prefix(5)) // 只取前5天
+                    self.dailyForecast = forecastResponse.daily // 取完整7天数据
                 }
-                print("✅ 7日预报数据获取成功")
+                print("✅ 7日预报数据获取成功，共\(forecastResponse.daily.count)天")
             } else {
                 print("❌ 7日预报API错误: \(forecastResponse.code)")
             }
@@ -418,6 +426,7 @@ class WeatherService: ObservableObject {
 struct WeatherAvatarView: View {
     @ObservedObject var weatherService: WeatherService
     @Binding var showWeatherPopup: Bool
+    let regionName: String
     
     private var weatherIconName: String {
         if let weather = weatherService.currentWeather {
@@ -492,17 +501,79 @@ struct WeatherAvatarView: View {
     private func weatherIconNameFor(code: String) -> String {
         // 根据和风天气图标代码转换为SF Symbols
         switch code {
-        case "100": return "sun.max.fill"
-        case "101": return "cloud.sun.fill"
-        case "102": return "cloud.sun.fill"
-        case "103": return "cloud.sun.fill"
-        case "104": return "cloud.fill"
-        case "150", "151", "152", "153": return "cloud.sun.rain.fill"
-        case "300", "301", "302", "303", "304": return "cloud.rain.fill"
-        case "305", "306", "307", "308", "309", "310", "311", "312", "313": return "cloud.heavyrain.fill"
-        case "400", "401", "402", "403", "404", "405", "406", "407": return "cloud.snow.fill"
-        case "500", "501", "502", "503", "504", "507", "508": return "cloud.fog.fill"
-        default: return "sun.max.fill"
+        // 晴天系列 (白天和夜间)
+        case "100": return "sun.max.fill"                    // 晴 (白天)
+        case "150": return "moon.stars.fill"                 // 晴 (夜间)
+        
+        // 多云系列 (白天和夜间)
+        case "101": return "cloud.sun.fill"                 // 多云 (白天)
+        case "102": return "cloud.sun.fill"                 // 少云 (白天)
+        case "103": return "cloud.sun.fill"                 // 晴间多云 (白天)
+        case "104": return "cloud.fill"                     // 阴
+        case "151": return "cloud.moon.fill"                // 多云 (夜间)
+        case "152": return "cloud.moon.fill"                // 少云 (夜间)
+        case "153": return "cloud.moon.fill"                // 晴间多云 (夜间)
+        
+        // 雨系列 (白天和夜间)
+        case "300": return "cloud.drizzle.fill"             // 阵雨 (白天)
+        case "301": return "cloud.drizzle.fill"             // 强阵雨 (白天)
+        case "302": return "cloud.bolt.rain.fill"           // 雷阵雨 (白天)
+        case "303": return "cloud.bolt.rain.fill"           // 强雷阵雨 (白天)
+        case "304": return "cloud.bolt.rain.fill"           // 雷阵雨伴有冰雹 (白天)
+        case "305": return "cloud.rain.fill"                // 小雨
+        case "306": return "cloud.rain.fill"                // 中雨
+        case "307": return "cloud.rain.fill"                // 大雨
+        case "308": return "cloud.heavyrain.fill"           // 极端降雨
+        case "309": return "cloud.drizzle.fill"             // 毛毛雨/细雨
+        case "310": return "cloud.heavyrain.fill"           // 暴雨
+        case "311": return "cloud.heavyrain.fill"           // 大暴雨
+        case "312": return "cloud.heavyrain.fill"           // 特大暴雨
+        case "313": return "cloud.sleet.fill"               // 冻雨
+        case "314", "315", "316", "317", "318": return "cloud.rain.fill" // 雨转换
+        case "350": return "cloud.moon.rain.fill"           // 阵雨 (夜间)
+        case "351": return "cloud.moon.rain.fill"           // 强阵雨 (夜间)
+        case "399": return "cloud.rain.fill"                // 雨
+        
+        // 雪系列
+        case "400": return "cloud.snow.fill"                // 小雪
+        case "401": return "cloud.snow.fill"                // 中雪
+        case "402": return "cloud.snow.fill"                // 大雪
+        case "403": return "cloud.snow.fill"                // 暴雪
+        case "404": return "cloud.sleet.fill"               // 雨夹雪
+        case "405": return "cloud.sleet.fill"               // 雨雪天气
+        case "406": return "cloud.sleet.fill"               // 阵雨夹雪
+        case "407": return "cloud.sleet.fill"               // 阵雪
+        case "408": return "cloud.snow.fill"                // 小雪转中雪
+        case "409": return "cloud.snow.fill"                // 中雪转大雪
+        case "410": return "cloud.snow.fill"                // 大雪转暴雪
+        case "456": return "cloud.sleet.fill"               // 阵雨夹雪 (夜间)
+        case "457": return "cloud.snow.fill"                // 阵雪 (夜间)
+        case "499": return "cloud.snow.fill"                // 雪
+        
+        // 雾霾系列
+        case "500": return "cloud.fog.fill"                 // 薄雾
+        case "501": return "cloud.fog.fill"                 // 雾
+        case "502": return "smoke.fill"                     // 霾
+        case "503": return "smoke.fill"                     // 扬沙
+        case "504": return "smoke.fill"                     // 浮尘
+        case "507": return "smoke.fill"                     // 沙尘暴
+        case "508": return "smoke.fill"                     // 强沙尘暴
+        case "509": return "cloud.fog.fill"                 // 浓雾
+        case "510": return "cloud.fog.fill"                 // 强浓雾
+        case "511": return "cloud.fog.fill"                 // 中度霾
+        case "512": return "smoke.fill"                     // 重度霾
+        case "513": return "smoke.fill"                     // 严重霾
+        case "514": return "cloud.fog.fill"                 // 大雾
+        case "515": return "cloud.fog.fill"                 // 特强浓雾
+        
+        // 其他天气
+        case "900": return "thermometer.sun.fill"           // 热
+        case "901": return "thermometer.snowflake"          // 冷
+        case "999": return "questionmark.circle.fill"       // 未知
+        
+        default: 
+            print("⚠️ 未知天气代码: \(code)")
+            return "sun.max.fill"
         }
     }
     
@@ -528,6 +599,7 @@ struct WeatherAvatarView: View {
 struct WeatherPopupView: View {
     @ObservedObject var weatherService: WeatherService
     @Binding var isPresented: Bool
+    let regionName: String
     
     var body: some View {
         VStack(spacing: 0) {
@@ -558,11 +630,11 @@ struct WeatherPopupView: View {
             .overlay(alignment: .topLeading) {
                 // 天气标题
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("天气")
+                    Text("\(regionName)天气")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                     
-                    Text("上次更新：5分钟前")
+                    Text("经度 120.08°E，纬度 30.31°N")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white.opacity(0.8))
                 }
@@ -581,13 +653,13 @@ struct WeatherPopupView: View {
                         // 天气图标和温度
                         VStack(spacing: 4) {
                             Image(systemName: weatherIconName(for: weather.icon))
-                                .font(.system(size: 32, weight: .medium))
+                                .font(.system(size: 24, weight: .medium))
                                 .symbolRenderingMode(.multicolor)
                                 .shadow(color: .black.opacity(0.2), radius: 2, x: 1, y: 1)
-                                .frame(height: 32)
+                                .frame(height: 24)
                             
                             Text("\(weather.temp)℃")
-                                .font(.system(size: 24, weight: .bold))
+                                .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(.primary)
                             
                             Text("温度")
@@ -602,6 +674,7 @@ struct WeatherPopupView: View {
                                 .font(.system(size: 24, weight: .medium))
                                 .foregroundColor(.blue)
                                 .shadow(color: .black.opacity(0.2), radius: 2, x: 1, y: 1)
+                                .frame(height: 24)
                             
                             Text("\(weather.humidity)%")
                                 .font(.system(size: 20, weight: .bold))
@@ -619,6 +692,7 @@ struct WeatherPopupView: View {
                                 .font(.system(size: 24, weight: .medium))
                                 .foregroundColor(.gray)
                                 .shadow(color: .black.opacity(0.2), radius: 2, x: 1, y: 1)
+                                .frame(height: 24)
                             
                             Text("\(weather.windSpeed)km/h")
                                 .font(.system(size: 20, weight: .bold))
@@ -641,43 +715,9 @@ struct WeatherPopupView: View {
                     }
                     .padding(.horizontal, 16)
                     
-                    // 24小时预报（真实数据）
-                    HStack(spacing: 20) {
-                        if weatherService.hourlyForecast.isEmpty {
-                            // 显示加载状态或当前天气作为默认
-                            VStack(spacing: 6) {
-                                Image(systemName: weatherIconName(for: weather.icon))
-                                    .font(.system(size: 16))
-                                    .symbolRenderingMode(.multicolor)
-                                    .shadow(color: .black.opacity(0.15), radius: 1, x: 0.5, y: 0.5)
-                                    .frame(height: 16)
-                                
-                                Text("\(weather.temp)℃")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.primary)
-                                
-                                Text("现在")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(maxWidth: .infinity, minHeight: 60)
-                            
-                            // 显示加载中的占位符
-                            ForEach(0..<4, id: \.self) { _ in
-                                VStack(spacing: 6) {
-                                    ProgressView()
-                                        .scaleEffect(0.6)
-                                        .frame(height: 16)
-                                    Text("--℃")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                    Text("--:--")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.secondary)
-                                }
-                                .frame(maxWidth: .infinity, minHeight: 60)
-                            }
-                        } else {
+                    // 24小时预报（可滑动）
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
                             // 显示现在
                             VStack(spacing: 6) {
                                 Image(systemName: weatherIconName(for: weather.icon))
@@ -694,30 +734,48 @@ struct WeatherPopupView: View {
                                     .font(.system(size: 10))
                                     .foregroundColor(.secondary)
                             }
-                            .frame(maxWidth: .infinity, minHeight: 60)
+                            .frame(width: 55, height: 60) // 固定宽度与7日预报保持一致
                             
-                            // 显示预报数据
-                            ForEach(weatherService.hourlyForecast.prefix(4), id: \.fxTime) { forecast in
-                                VStack(spacing: 6) {
-                                    Image(systemName: weatherIconName(for: forecast.icon))
-                                        .font(.system(size: 16))
-                                        .symbolRenderingMode(.multicolor)
-                                        .shadow(color: .black.opacity(0.15), radius: 1, x: 0.5, y: 0.5)
-                                        .frame(height: 16)
-                                    
-                                    Text("\(forecast.temp)℃")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.primary)
-                                    
-                                    Text(formatHourTime(forecast.fxTime))
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.secondary)
+                            if weatherService.hourlyForecast.isEmpty {
+                                // 显示加载中的占位符
+                                ForEach(0..<4, id: \.self) { _ in
+                                    VStack(spacing: 6) {
+                                        ProgressView()
+                                            .scaleEffect(0.6)
+                                            .frame(height: 16)
+                                        Text("--℃")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(.secondary)
+                                        Text("--:--")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .frame(width: 55, height: 60)
                                 }
-                                .frame(maxWidth: .infinity, minHeight: 60)
+                            } else {
+                                // 显示完整24小时预报数据
+                                ForEach(weatherService.hourlyForecast, id: \.fxTime) { forecast in
+                                    VStack(spacing: 6) {
+                                        Image(systemName: weatherIconName(for: forecast.icon))
+                                            .font(.system(size: 16))
+                                            .symbolRenderingMode(.multicolor)
+                                            .shadow(color: .black.opacity(0.15), radius: 1, x: 0.5, y: 0.5)
+                                            .frame(height: 16)
+                                        
+                                        Text("\(forecast.temp)℃")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(.primary)
+                                        
+                                        Text(formatHourTime(forecast.fxTime))
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .frame(width: 55, height: 60) // 固定宽度与7日预报保持一致
+                                }
                             }
                         }
+                        .padding(.horizontal, 16)
                     }
-                    .padding(.horizontal, 16)
                     
                     // 7日预报标题
                     HStack {
@@ -728,50 +786,53 @@ struct WeatherPopupView: View {
                     }
                     .padding(.horizontal, 16)
                     
-                    // 7日预报（真实数据）
-                    HStack(spacing: 20) {
-                        if weatherService.dailyForecast.isEmpty {
-                            // 显示加载中的占位符
-                            ForEach(0..<5, id: \.self) { index in
-                                VStack(spacing: 6) {
-                                    ProgressView()
-                                        .scaleEffect(0.6)
-                                    Text("--℃")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                    Text(index == 0 ? "今日" : index == 1 ? "明日" : "加载中")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.secondary)
+                    // 7日预报（可滑动）
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            if weatherService.dailyForecast.isEmpty {
+                                // 显示加载中的占位符
+                                ForEach(0..<7, id: \.self) { index in
+                                    VStack(spacing: 6) {
+                                        ProgressView()
+                                            .scaleEffect(0.6)
+                                        Text("--℃")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(.secondary)
+                                        Text(index == 0 ? "今日" : index == 1 ? "明日" : "加载中")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .frame(width: 55, height: 70) // 固定宽度
                                 }
-                                .frame(maxWidth: .infinity)
+                            } else {
+                                // 显示完整7日预报数据
+                                ForEach(Array(weatherService.dailyForecast.enumerated()), id: \.element.fxDate) { index, forecast in
+                                    VStack(spacing: 6) {
+                                        Image(systemName: weatherIconName(for: forecast.iconDay))
+                                            .font(.system(size: 16))
+                                            .symbolRenderingMode(.multicolor)
+                                            .shadow(color: .black.opacity(0.15), radius: 1, x: 0.5, y: 0.5)
+                                            .frame(height: 16)
+                                        
+                                        VStack(spacing: 2) {
+                                            Text("\(forecast.tempMax)℃")
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .foregroundColor(.primary)
+                                            Text("\(forecast.tempMin)℃")
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(.secondary)
+                                        }
+                                        
+                                        Text(formatDayText(for: index, date: forecast.fxDate))
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .frame(width: 55, height: 70) // 固定宽度确保列表整齐
+                                }
                             }
-                        } else {
-                                                         ForEach(Array(weatherService.dailyForecast.enumerated()), id: \.element.fxDate) { index, forecast in
-                                 VStack(spacing: 6) {
-                                     Image(systemName: weatherIconName(for: forecast.iconDay))
-                                         .font(.system(size: 16))
-                                         .symbolRenderingMode(.multicolor)
-                                         .shadow(color: .black.opacity(0.15), radius: 1, x: 0.5, y: 0.5)
-                                         .frame(height: 16)
-                                     
-                                     VStack(spacing: 2) {
-                                         Text("\(forecast.tempMax)℃")
-                                             .font(.system(size: 12, weight: .semibold))
-                                             .foregroundColor(.primary)
-                                         Text("\(forecast.tempMin)℃")
-                                             .font(.system(size: 10, weight: .medium))
-                                             .foregroundColor(.secondary)
-                                     }
-                                     
-                                     Text(formatDayText(for: index, date: forecast.fxDate))
-                                         .font(.system(size: 10))
-                                         .foregroundColor(.secondary)
-                                 }
-                                 .frame(maxWidth: .infinity, minHeight: 70)
-                             }
                         }
+                        .padding(.horizontal, 16)
                     }
-                    .padding(.horizontal, 16)
                     
                 } else if let error = weatherService.errorMessage {
                     VStack(spacing: 12) {
@@ -816,31 +877,128 @@ struct WeatherPopupView: View {
     private func weatherIconName(for code: String) -> String {
         // 根据和风天气图标代码转换为SF Symbols
         switch code {
-        case "100": return "sun.max.fill"
-        case "101": return "cloud.sun.fill"
-        case "102": return "cloud.sun.fill"
-        case "103": return "cloud.sun.fill"
-        case "104": return "cloud.fill"
-        case "150", "151", "152", "153": return "cloud.sun.rain.fill"
-        case "300", "301", "302", "303", "304": return "cloud.rain.fill"
-        case "305", "306", "307", "308", "309", "310", "311", "312", "313": return "cloud.heavyrain.fill"
-        case "400", "401", "402", "403", "404", "405", "406", "407": return "cloud.snow.fill"
-        case "500", "501", "502", "503", "504", "507", "508": return "cloud.fog.fill"
-        default: return "sun.max.fill"
+        // 晴天系列 (白天和夜间)
+        case "100": return "sun.max.fill"                    // 晴 (白天)
+        case "150": return "moon.stars.fill"                 // 晴 (夜间)
+        
+        // 多云系列 (白天和夜间)
+        case "101": return "cloud.sun.fill"                 // 多云 (白天)
+        case "102": return "cloud.sun.fill"                 // 少云 (白天)
+        case "103": return "cloud.sun.fill"                 // 晴间多云 (白天)
+        case "104": return "cloud.fill"                     // 阴
+        case "151": return "cloud.moon.fill"                // 多云 (夜间)
+        case "152": return "cloud.moon.fill"                // 少云 (夜间)
+        case "153": return "cloud.moon.fill"                // 晴间多云 (夜间)
+        
+        // 雨系列 (白天和夜间)
+        case "300": return "cloud.drizzle.fill"             // 阵雨 (白天)
+        case "301": return "cloud.drizzle.fill"             // 强阵雨 (白天)
+        case "302": return "cloud.bolt.rain.fill"           // 雷阵雨 (白天)
+        case "303": return "cloud.bolt.rain.fill"           // 强雷阵雨 (白天)
+        case "304": return "cloud.bolt.rain.fill"           // 雷阵雨伴有冰雹 (白天)
+        case "305": return "cloud.rain.fill"                // 小雨
+        case "306": return "cloud.rain.fill"                // 中雨
+        case "307": return "cloud.rain.fill"                // 大雨
+        case "308": return "cloud.heavyrain.fill"           // 极端降雨
+        case "309": return "cloud.drizzle.fill"             // 毛毛雨/细雨
+        case "310": return "cloud.heavyrain.fill"           // 暴雨
+        case "311": return "cloud.heavyrain.fill"           // 大暴雨
+        case "312": return "cloud.heavyrain.fill"           // 特大暴雨
+        case "313": return "cloud.sleet.fill"               // 冻雨
+        case "314", "315", "316", "317", "318": return "cloud.rain.fill" // 雨转换
+        case "350": return "cloud.moon.rain.fill"           // 阵雨 (夜间)
+        case "351": return "cloud.moon.rain.fill"           // 强阵雨 (夜间)
+        case "399": return "cloud.rain.fill"                // 雨
+        
+        // 雪系列
+        case "400": return "cloud.snow.fill"                // 小雪
+        case "401": return "cloud.snow.fill"                // 中雪
+        case "402": return "cloud.snow.fill"                // 大雪
+        case "403": return "cloud.snow.fill"                // 暴雪
+        case "404": return "cloud.sleet.fill"               // 雨夹雪
+        case "405": return "cloud.sleet.fill"               // 雨雪天气
+        case "406": return "cloud.sleet.fill"               // 阵雨夹雪
+        case "407": return "cloud.sleet.fill"               // 阵雪
+        case "408": return "cloud.snow.fill"                // 小雪转中雪
+        case "409": return "cloud.snow.fill"                // 中雪转大雪
+        case "410": return "cloud.snow.fill"                // 大雪转暴雪
+        case "456": return "cloud.sleet.fill"               // 阵雨夹雪 (夜间)
+        case "457": return "cloud.snow.fill"                // 阵雪 (夜间)
+        case "499": return "cloud.snow.fill"                // 雪
+        
+        // 雾霾系列
+        case "500": return "cloud.fog.fill"                 // 薄雾
+        case "501": return "cloud.fog.fill"                 // 雾
+        case "502": return "smoke.fill"                     // 霾
+        case "503": return "smoke.fill"                     // 扬沙
+        case "504": return "smoke.fill"                     // 浮尘
+        case "507": return "smoke.fill"                     // 沙尘暴
+        case "508": return "smoke.fill"                     // 强沙尘暴
+        case "509": return "cloud.fog.fill"                 // 浓雾
+        case "510": return "cloud.fog.fill"                 // 强浓雾
+        case "511": return "cloud.fog.fill"                 // 中度霾
+        case "512": return "smoke.fill"                     // 重度霾
+        case "513": return "smoke.fill"                     // 严重霾
+        case "514": return "cloud.fog.fill"                 // 大雾
+        case "515": return "cloud.fog.fill"                 // 特强浓雾
+        
+        // 其他天气
+        case "900": return "thermometer.sun.fill"           // 热
+        case "901": return "thermometer.snowflake"          // 冷
+        case "999": return "questionmark.circle.fill"       // 未知
+        
+        default: 
+            print("⚠️ 未知天气代码: \(code)")
+            return "sun.max.fill"
         }
     }
     
     private func weatherIconColor(for code: String) -> Color {
         // 根据天气类型返回对应颜色
         switch code {
-        case "100": return .orange // 晴天
-        case "101", "102", "103": return .gray // 多云
-        case "104": return .gray // 阴天
-        case "150", "151", "152", "153": return .blue // 小雨
-        case "300", "301", "302", "303", "304": return .blue // 阵雨
-        case "305", "306", "307", "308", "309", "310", "311", "312", "313": return .blue // 大雨
-        case "400", "401", "402", "403", "404", "405", "406", "407": return .white // 雪
-        case "500", "501", "502", "503", "504", "507", "508": return .gray // 雾
+        // 晴天系列 (白天和夜间)
+        case "100": return .orange                          // 晴天 (白天)
+        case "150": return .yellow                          // 晴天 (夜间)
+        
+        // 多云系列 (白天和夜间)
+        case "101", "102", "103": return .gray              // 多云、少云、晴间多云 (白天)
+        case "104": return .gray                            // 阴天
+        case "151", "152", "153": return .gray              // 多云、少云、晴间多云 (夜间)
+        
+        // 雨系列 (白天和夜间)
+        case "300", "301": return .blue                     // 阵雨
+        case "302", "303", "304": return .purple            // 雷阵雨
+        case "305", "306", "307": return .blue              // 小雨、中雨、大雨
+        case "308": return .blue                            // 极端降雨
+        case "309": return .blue                            // 毛毛雨
+        case "310", "311", "312": return .blue              // 暴雨系列
+        case "313": return .cyan                            // 冻雨
+        case "314", "315", "316", "317", "318": return .blue // 雨转换
+        case "350", "351": return .blue                     // 阵雨 (夜间)
+        case "399": return .blue                            // 雨
+        
+        // 雪系列
+        case "400", "401", "402", "403": return .white      // 各种雪
+        case "404", "405", "406", "407": return .cyan       // 雨夹雪、阵雪
+        case "408", "409", "410": return .white             // 雪转换
+        case "456", "457": return .cyan                     // 夜间雨夹雪、阵雪
+        case "499": return .white                           // 雪
+        
+        // 雾霾系列
+        case "500", "501": return .gray                     // 薄雾、雾
+        case "502": return .brown                           // 霾
+        case "503", "504": return .brown                    // 扬沙、浮尘
+        case "507", "508": return .brown                    // 沙尘暴
+        case "509", "510": return .gray                     // 浓雾
+        case "511": return .brown                           // 中度霾
+        case "512", "513": return .brown                    // 重度霾、严重霾
+        case "514", "515": return .gray                     // 大雾、特强浓雾
+        
+        // 其他天气
+        case "900": return .red                             // 热
+        case "901": return .blue                            // 冷
+        case "999": return .gray                            // 未知
+        
         default: return .orange
         }
     }
@@ -915,4 +1073,5 @@ struct WeatherPopupView: View {
         return "预报"
     }
 }
+
 

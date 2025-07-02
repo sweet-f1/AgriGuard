@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import MapKit
+import Foundation
 
 // hex 颜色
 extension Color {
@@ -59,26 +61,34 @@ struct SidebarMenuRow: View {
     let selected: Bool
     let mainColor: Color
     let selectedBg: Color
+    let onTap: () -> Void
 
     var body: some View {
-        ZStack(alignment: .leading) {
-            if selected {
-                Capsule()
-                    .fill(selectedBg)
-                    .frame(height: 44)
-                    .padding(.horizontal, 4)
+        Button(action: onTap) {
+            ZStack(alignment: .leading) {
+                if selected {
+                    Capsule()
+                        .fill(selectedBg)
+                        .frame(height: 44)
+                        .padding(.horizontal, 4)
+                }
+                HStack(spacing: 12) {
+                    Image(systemName: selected ? menu.selectedIcon : menu.icon)
+                        .foregroundColor(selected ? mainColor : .primary)
+                        .font(.system(size: 16, weight: .medium))
+                        .frame(width: 20, alignment: .center) // 固定图标宽度确保对齐
+                    Text(menu.rawValue)
+                        .font(.headline)
+                        .foregroundColor(selected ? mainColor : .primary)
+                    Spacer() // 确保内容左对齐
+                }
+                .padding(.horizontal, 22)
+                .frame(height: 44, alignment: .leading)
             }
-            HStack(spacing: 12) {
-                Image(systemName: selected ? menu.selectedIcon : menu.icon)
-                    .foregroundColor(selected ? mainColor : .primary)
-                Text(menu.rawValue)
-                    .font(.headline)
-                    .foregroundColor(selected ? mainColor : .primary)
-            }
-            .padding(.horizontal, 22)
-            .frame(height: 44, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle()) // 确保整个区域都可以点击
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .buttonStyle(.plain) // 移除默认按钮样式
     }
 }
 
@@ -88,52 +98,62 @@ struct ContentView: View {
     @StateObject private var weatherService = WeatherConfig.createWeatherService()
     let mainColor = Color("primaryGreen")
     let selectedBg = Color("selectedGreen")
+    
+    // 当前选择的区域
+    @State private var currentRegion = "区域A"
+    @State private var currentCoordinate = CLLocationCoordinate2D(latitude: 30.30661441116419, longitude: 120.0803089141845)
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $selection) {
-                // 只留导航栏标题，无 logo，无顶部 Section
-                ForEach(Menu.allCases) { menu in
-                    SidebarMenuRow(menu: menu,
-                                   selected: selection == menu,
-                                   mainColor: mainColor,
-                                   selectedBg: selectedBg)
-                        .tag(menu)
+            VStack(spacing: 0) {
+                // 菜单列表区域
+                List {
+                    ForEach(Menu.allCases) { menu in
+                        SidebarMenuRow(menu: menu,
+                                       selected: selection == menu,
+                                       mainColor: mainColor,
+                                       selectedBg: selectedBg) {
+                            selection = menu
+                        }
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets())
-                }
-
-                // Spacer 占位让按钮吸底（利用 Section，适配大屏幕）
-                Section {
-                    Spacer()
-                        .frame(height: 650) // 可根据你实际 sidebar 高度微调
-                }
-
-                // 底部按钮
-                Section {
-                    HStack {
-                        Button(action: {
-                            // 巡检逻辑
-                        }) {
-                            HStack {
-                                Image(systemName: "plus")
-                                Text("开始巡检")
-                                    .fontWeight(.semibold)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 44)
-                            .background(
-                                Capsule()
-                                    .fill(mainColor)
-                            )
-                            .foregroundColor(.white)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 4)
                     }
                 }
+                .listStyle(.sidebar)
+                .scrollDisabled(true) // 禁用滚动，因为菜单项不多
+                
+                // 自动填充空间的Spacer
+                Spacer()
+                
+                // 底部按钮区域
+                VStack(spacing: 0) {
+                    // 分隔线
+                    Divider()
+                        .padding(.horizontal, 16)
+                    
+                    // 开始巡检按钮
+                    Button(action: {
+                        // 巡检逻辑
+                    }) {
+                        HStack {
+                            Image(systemName: "plus")
+                            Text("开始巡检")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(
+                            Capsule()
+                                .fill(mainColor)
+                        )
+                        .foregroundColor(.white)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                }
+                .background(Color(.systemBackground))
             }
-            .listStyle(.sidebar)
             .navigationTitle("AgriGuard")
         } detail: {
             switch selection {
@@ -144,7 +164,7 @@ struct ContentView: View {
                 .navigationTitle("田野看板")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        WeatherAvatarView(weatherService: weatherService, showWeatherPopup: $showWeatherPopup)
+                        WeatherAvatarView(weatherService: weatherService, showWeatherPopup: $showWeatherPopup, regionName: currentRegion)
                     }
                 }
             case .info:
@@ -153,16 +173,15 @@ struct ContentView: View {
                     .navigationTitle("信息面板")
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
-                            WeatherAvatarView(weatherService: weatherService, showWeatherPopup: $showWeatherPopup)
+                            WeatherAvatarView(weatherService: weatherService, showWeatherPopup: $showWeatherPopup, regionName: currentRegion)
                         }
                     }
             case .control:
-                Text("控制面板内容")
-                    .font(.largeTitle)
+                ControlPanelView()
                     .navigationTitle("控制面板")
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
-                            WeatherAvatarView(weatherService: weatherService, showWeatherPopup: $showWeatherPopup)
+                            WeatherAvatarView(weatherService: weatherService, showWeatherPopup: $showWeatherPopup, regionName: currentRegion)
                         }
                     }
             default:
@@ -179,7 +198,7 @@ struct ContentView: View {
                         showWeatherPopup = false
                     }
                     .overlay(alignment: .topTrailing) {
-                        WeatherPopupView(weatherService: weatherService, isPresented: $showWeatherPopup)
+                        WeatherPopupView(weatherService: weatherService, isPresented: $showWeatherPopup, regionName: currentRegion)
                             .padding(.top, 65) // 调整距顶部距离，确保在导航栏下方
                             .padding(.trailing, 30) // 调整距右侧距离
                             .transition(.asymmetric(
@@ -195,19 +214,22 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            // 应用启动时获取天气数据
-            weatherService.fetchCurrentWeather()
+            // 应用启动时获取地图位置的天气数据
+            weatherService.fetchWeatherForCoordinate(latitude: currentCoordinate.latitude, longitude: currentCoordinate.longitude)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RegionChanged"))) { notification in
+            // 监听区域变化通知
+            if let userInfo = notification.userInfo,
+               let regionName = userInfo["regionName"] as? String,
+               let coordinate = userInfo["coordinate"] as? CLLocationCoordinate2D {
+                currentRegion = regionName
+                currentCoordinate = coordinate
+                // 获取新区域的天气数据
+                weatherService.fetchWeatherForCoordinate(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            }
         }
     }
 }
-
-
-
-
-
-
-
-
 
 
 

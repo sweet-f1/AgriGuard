@@ -1,33 +1,122 @@
 import SwiftUI
 import MapKit
 import Combine
+import Foundation
 
 // 田块数据结构
-struct Field: Identifiable {
+struct Field: Identifiable, Equatable {
     let id = UUID()
     let name: String
     let coordinate: CLLocationCoordinate2D
+    
+    static func == (lhs: Field, rhs: Field) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.name == rhs.name &&
+               lhs.coordinate.latitude == rhs.coordinate.latitude &&
+               lhs.coordinate.longitude == rhs.coordinate.longitude
+    }
+}
+
+// 区域数据结构
+struct Region: Identifiable, Equatable {
+    let id = UUID()
+    let name: String
+    let center: CLLocationCoordinate2D
+    let fields: [Field]
+    
+    static func == (lhs: Region, rhs: Region) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.name == rhs.name &&
+               lhs.center.latitude == rhs.center.latitude &&
+               lhs.center.longitude == rhs.center.longitude &&
+               lhs.fields == rhs.fields
+    }
+}
+
+// 区域选择弹窗按钮
+struct RegionSelectorButton: View {
+    @Binding var selectedRegion: Region
+    let regions: [Region]
+    @State private var showingMenu = false
+    
+    var body: some View {
+        Button(action: {
+            showingMenu = true
+        }) {
+            HStack(spacing: 6) {
+                Text(selectedRegion.name)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.primary)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.regularMaterial)
+                    .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .confirmationDialog("选择区域", isPresented: $showingMenu, titleVisibility: .visible) {
+            ForEach(regions, id: \.id) { region in
+                Button(region.name) {
+                    selectedRegion = region
+                    // 发送区域变化通知
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("RegionChanged"),
+                        object: nil,
+                        userInfo: [
+                            "regionName": region.name,
+                            "coordinate": region.center
+                        ]
+                    )
+                }
+            }
+            Button("取消", role: .cancel) { }
+        }
+    }
 }
 
 // 田块地图视图
 struct FieldMapView: View {
-    let fields: [Field]
+    @Binding var selectedRegion: Region
+    let regions: [Region]
     @State private var position: MapCameraPosition
 
-    init(fields: [Field], center: CLLocationCoordinate2D) {
-        self.fields = fields
+    init(selectedRegion: Binding<Region>, regions: [Region]) {
+        self._selectedRegion = selectedRegion
+        self.regions = regions
         _position = State(initialValue: .region(MKCoordinateRegion(
-            center: center,
+            center: selectedRegion.wrappedValue.center,
             span: MKCoordinateSpan(latitudeDelta: 0.001, longitudeDelta: 0.001)
         )))
     }
 
     var body: some View {
-        Map(position: $position) {
-            ForEach(fields) { field in
-                Marker(field.name, coordinate: field.coordinate)
-                    .tint(.green)
+        ZStack(alignment: .topLeading) {
+            Map(position: $position) {
+                ForEach(selectedRegion.fields) { field in
+                    Marker(field.name, coordinate: field.coordinate)
+                        .tint(.green)
+                }
             }
+            .onChange(of: selectedRegion) { _, newRegion in
+                // 当区域改变时，移动地图中心
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    position = .region(MKCoordinateRegion(
+                        center: newRegion.center,
+                        span: MKCoordinateSpan(latitudeDelta: 0.001, longitudeDelta: 0.001)
+                    ))
+                }
+            }
+            
+            // 区域选择按钮 - 位于地图左上角
+            RegionSelectorButton(selectedRegion: $selectedRegion, regions: regions)
+                .padding(.leading, 16)
+                .padding(.top, 16)
         }
     }
 }
@@ -169,11 +258,33 @@ struct EditMapButton: View {
 
 // 田野看板主视图
 struct FieldDashboardView: View {
-    // mock 田块数据
-    let fields = [
-        Field(name: "地块A", coordinate: CLLocationCoordinate2D(latitude: 30.30661441116419, longitude: 120.0803089141845))
+    // mock 区域数据
+    static let mockRegions = [
+        Region(
+            name: "区域A",
+            center: CLLocationCoordinate2D(latitude: 30.30661441116419, longitude: 120.0803089141845),
+            fields: [
+                Field(name: "区域A", coordinate: CLLocationCoordinate2D(latitude: 30.30661441116419, longitude: 120.0803089141845))
+            ]
+        ),
+        Region(
+            name: "区域B",
+            center: CLLocationCoordinate2D(latitude: 30.307174797126223, longitude: 120.078310668684),
+            fields: [
+                Field(name: "区域B", coordinate: CLLocationCoordinate2D(latitude: 30.307174797126223, longitude: 120.078310668684))
+            ]
+        ),
+        Region(
+            name: "区域C",
+            center: CLLocationCoordinate2D(latitude: 30.30461441116419, longitude: 120.0783089141845),
+            fields: [
+                Field(name: "区域C", coordinate: CLLocationCoordinate2D(latitude: 30.30461441116419, longitude: 120.0783089141845))
+            ]
+        )
     ]
-    let center = CLLocationCoordinate2D(latitude: 30.30661441116419, longitude: 120.0803089141845)
+    
+    let regions = FieldDashboardView.mockRegions
+    @State private var selectedRegion = FieldDashboardView.mockRegions[0]
 
     enum DashboardTab: String, CaseIterable, Identifiable {
         case current = "当前情况"
@@ -203,7 +314,7 @@ struct FieldDashboardView: View {
             ZStack(alignment: .leading) {
                 if selectedTab == .edit {
                     ZStack {
-                        FieldMapView(fields: fields, center: center)
+                        FieldMapView(selectedRegion: $selectedRegion, regions: regions)
                             .cornerRadius(16)
                             .padding(.horizontal, 16)
                             .padding(.bottom, 16)
@@ -283,7 +394,7 @@ struct FieldDashboardView: View {
                         }
                     }
                 } else {
-                    FieldMapView(fields: fields, center: center)
+                    FieldMapView(selectedRegion: $selectedRegion, regions: regions)
                         .cornerRadius(16)
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
