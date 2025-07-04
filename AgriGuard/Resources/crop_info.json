@@ -1,0 +1,16 @@
+[
+  {
+    "id": "crop_filter_001",
+    "name": "全部作物",
+    "type": "filter",
+    "options": ["全部作物", "玉米", "小麦", "水稻", "大豆"]
+  },
+  {
+    "id": "date_info_001",
+    "year": "2025年",
+    "date": "5月19日",
+    "time": "9:41 AM",
+    "dayOfWeek": "周一",
+    "timestamp": "2025-05-19T09:41:00Z"
+  }
+] 

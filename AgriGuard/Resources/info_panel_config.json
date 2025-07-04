@@ -1,0 +1,33 @@
+{
+  "panel_info": {
+    "title": "信息面板",
+    "version": "1.0.0",
+    "last_update": "2025-05-19T12:05:00Z"
+  },
+  "navigation": {
+    "current_tab": "信息面板",
+    "available_tabs": ["田野看板", "信息面板", "控制面板"]
+  },
+  "data_sources": {
+    "crop_info": "crop_info.json",
+    "pest_disease": "pest_disease_info.json",
+    "trend_analysis": "trend_analysis.json", 
+    "work_logs": "work_logs.json",
+    "weather": "weather_info.json",
+    "dogbots": "dogbots.json",
+    "regions": "regions.json"
+  },
+  "refresh_intervals": {
+    "weather": 300,
+    "pest_disease": 600,
+    "work_logs": 60,
+    "trend_analysis": 3600,
+    "crop_info": 1800
+  },
+  "features": {
+    "auto_refresh": true,
+    "real_time_updates": true,
+    "offline_mode": false,
+    "notifications": true
+  }
+} 

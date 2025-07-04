@@ -1,0 +1,54 @@
+{
+  "title": "工作日志",
+  "filter": {
+    "selected": "全部机器狗",
+    "options": ["全部机器狗", "绝影lite3-A1", "绝影lite3-A2", "绝影lite3-B1"]
+  },
+  "logs": [
+    {
+      "id": "log_001",
+      "type": "拍摄",
+      "title": "日常巡检完成",
+      "time": "2小时前",
+      "robot_id": "绝影lite3-A1",
+      "task_type": "日常巡检",
+      "description": "完成小麦A区域的例行检查\n捕获24张高分辨率图像"
+    },
+    {
+      "id": "log_002",
+      "type": "警告",
+      "title": "虫害检测预警",
+      "time": "4小时前",
+      "robot_id": "绝影lite3-A1",
+      "task_type": "中度预警",
+      "description": "在小麦A区域检测到潜在害虫活动\nAI分析表明早期有蚜虫侵袭"
+    },
+    {
+      "id": "log_003",
+      "type": "红警告",
+      "title": "病害检测预警",
+      "time": "4小时前",
+      "robot_id": "绝影lite3-A1",
+      "task_type": "重度预警",
+      "description": "在小麦C区域疑似出现病变\nAI分析表明为锈病"
+    },
+    {
+      "id": "log_004",
+      "type": "拍摄",
+      "title": "日常巡检完成",
+      "time": "5小时前",
+      "robot_id": "绝影lite3-A2",
+      "task_type": "日常巡检",
+      "description": "完成设定区域的例行检查\n捕获9张高分辨率图像"
+    },
+    {
+      "id": "log_005",
+      "type": "绿警告",
+      "title": "病害检测预警",
+      "time": "5小时前",
+      "robot_id": "绝影lite3-A1",
+      "task_type": "轻度预警",
+      "description": "在小麦A区域疑似出现病变\nAI分析表明有细菌感染风险"
+    }
+  ]
+} 

@@ -75,15 +75,6 @@ class RobotDogController: ObservableObject {
         if isConnected {
             // WiFi信号保持强信号状态（绿色）
             wifiStrength = 3 // 始终显示最强信号
-            
-            // 电量在使用过程中缓慢下降（可选）
-            // 实际应用中应该从机器狗实时获取电量
-            if Int.random(in: 1...20) == 1 && batteryLevel > 5 {
-                batteryLevel = max(5, batteryLevel - 1) // 偶尔减少1%电量
-            }
-        } else {
-            wifiStrength = 0
-            // 断开连接时不修改电量，保持JSON中的原始值
         }
     }
     
@@ -173,13 +164,17 @@ struct DogBotControlView: View {
     
     var body: some View {
         ZStack {
-            // 视频背景 - 填充整个屏幕
-            Image("机器狗摄像头")
+            // 视频背景 - 填充整个屏幕，根据摄像头模式切换
+            Image(selectedCamera == .dogCamera ? "机器狗摄像头" : "机械臂摄像头")
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .ignoresSafeArea(.all)
+                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                .clipped()
+                .ignoresSafeArea(.all) // 恢复全屏显示
+                .animation(.easeInOut(duration: 0.3), value: selectedCamera) // 添加切换动画
             
             // 顶部原生分段控制器（摄像头切换）
+            GeometryReader { geometry in
             VStack {
                 HStack {
                     Spacer()
@@ -192,53 +187,15 @@ struct DogBotControlView: View {
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                     Spacer()
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 65)
-                
-                Spacer()
-            }
-            
-            // 底部原生分段控制器（姿态和地形控制）
-            VStack {
-                Spacer()
-                
-                HStack(spacing: 16) {
-                    // 姿态控制
-                    Picker("姿态", selection: $selectedPosture) {
-                        Text("起立").tag(PostureMode.standUp)
-                        Text("趴下").tag(PostureMode.lieDown)
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 120)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
-                    .onChange(of: selectedPosture) {
-                        robotController.handleKeyPress("z") // 起立/趴下切换
-                    }
+                    .padding(.horizontal, geometry.size.width * 0.02) // 使用相对定位
+                    .padding(.top, geometry.size.height * 0.015) // 使用相对定位
                     
-                    // 地形控制
-                    Picker("地形", selection: $selectedTerrain) {
-                        Text("平地").tag(TerrainMode.flatLand)
-                        Text("越障").tag(TerrainMode.obstacle)
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 120)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
-                    .onChange(of: selectedTerrain) {
-                        switch selectedTerrain {
-                        case .flatLand:
-                            robotController.handleKeyPress("u") // 抓地模式，适合平地
-                        case .obstacle:
-                            robotController.handleKeyPress("i") // 越障模式
-                        }
-                    }
-                    
-                    Spacer() // 推到左侧
+                    Spacer()
                 }
-                .padding(.leading, 20)
-                .padding(.bottom, 60)
             }
                 
             // 右侧控制按钮（纵向居中）
+            GeometryReader { geometry in
             VStack {
                 Spacer()
                 
@@ -265,19 +222,21 @@ struct DogBotControlView: View {
                             // 拍摄功能
                         }
                     }
-                    .padding(.trailing, 20)
+                        .padding(.trailing, geometry.size.width * 0.03) // 使用相对定位
                 }
                 
                 Spacer()
+                }
             }
             
             // 右上角紧急停止按钮
+            GeometryReader { geometry in
             VStack {
                 HStack {
                     Spacer()
                     
                     Button(action: {
-                        robotController.handleKeyPress("p") // 软急停
+                            robotController.handleKeyPress("p") // 软急停
                     }) {
                         HStack {
                             Image(systemName: "stop.fill")
@@ -291,75 +250,259 @@ struct DogBotControlView: View {
                         .background(Color.red)
                         .cornerRadius(8)
                     }
-                    .padding(.trailing, 16)
-                    .padding(.top, 65) // 为导航栏留空间
+                        .padding(.trailing, geometry.size.width * 0.015) // 使用相对定位
+                        .padding(.top, geometry.size.height * 0.02) // 使用相对定位
+                    }
+                    Spacer()
                 }
-                Spacer()
             }
             
-            // 方向控制盘（右下角）
+            // 底部控制区域 - 根据摄像头模式显示不同内容
+            if selectedCamera == .dogCamera {
+                // 机器狗摄像头画面 - 方向控制盘（右下角）
+                GeometryReader { geometry in
             VStack {
                 Spacer()
                 HStack {
                     Spacer()
-                    VStack(spacing: 16) {
+                            VStack(spacing: 20) {
                         // 左转右转控制条
-                        HStack(spacing: 56) {
+                                HStack(spacing: 46) {
                             // 左转按钮
-                            Button(action: {}) {
+                                    Button(action: {}) {
                                 Image(systemName: "arrow.counterclockwise")
                                     .font(.system(size: 20, weight: .medium))
                                     .foregroundColor(.white)
-                                    .frame(width: 45, height: 40)
-                            }
-                            .simultaneousGesture(
-                                DragGesture(minimumDistance: 0)
-                                    .onChanged { _ in
-                                        robotController.handleKeyPress("q") // 左转
+                                            .frame(width: 55, height: 40)
                                     }
-                                    .onEnded { _ in
-                                        robotController.handleKeyRelease("q") // 停止左转
-                                    }
-                            )
+                                    .simultaneousGesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { _ in
+                                                robotController.handleKeyPress("q") // 左转
+                                            }
+                                            .onEnded { _ in
+                                                robotController.handleKeyRelease("q") // 停止左转
+                                            }
+                                    )
                             
                             // 右转按钮
-                            Button(action: {}) {
+                                    Button(action: {}) {
                                 Image(systemName: "arrow.clockwise")
                                     .font(.system(size: 20, weight: .medium))
                                     .foregroundColor(.white)
-                                    .frame(width: 45, height: 40)
+                                            .frame(width: 55, height: 40)
+                                    }
+                                    .simultaneousGesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { _ in
+                                                robotController.handleKeyPress("e") // 右转
+                                            }
+                                            .onEnded { _ in
+                                                robotController.handleKeyRelease("e") // 停止右转
+                                            }
+                                    )
+                                }
+                                .background(Color.white.opacity(0.5))
+                                .cornerRadius(40)
+                                
+                                // 原有的方向控制盘
+                                DirectionControlPad(
+                                    onForward: { robotController.handleKeyPress("w") },
+                                    onBackward: { robotController.handleKeyPress("s") },
+                                    onLeft: { robotController.handleKeyPress("a") },
+                                    onRight: { robotController.handleKeyPress("d") },
+                                    onStopForwardBackward: { robotController.handleKeyRelease("w") },
+                                    onStopLeftRight: { robotController.handleKeyRelease("a") }
+                                )
                             }
-                            .simultaneousGesture(
-                                DragGesture(minimumDistance: 0)
-                                    .onChanged { _ in
-                                        robotController.handleKeyPress("e") // 右转
-                                    }
-                                    .onEnded { _ in
-                                        robotController.handleKeyRelease("e") // 停止右转
-                                    }
-                            )
+                            .padding(.trailing, geometry.size.width * 0.02) // 使用相对定位
+                            .padding(.bottom, geometry.size.height * 0.01) // 减少底部空白
                         }
-                        .background(Color.white.opacity(0.5))
-                        .cornerRadius(20)
-                        
-                        // 原有的方向控制盘
-                        DirectionControlPad(
-                            onForward: { robotController.handleKeyPress("w") },
-                            onBackward: { robotController.handleKeyPress("s") },
-                            onLeft: { robotController.handleKeyPress("a") },
-                            onRight: { robotController.handleKeyPress("d") },
-                            onStopForwardBackward: { robotController.handleKeyRelease("w") },
-                            onStopLeftRight: { robotController.handleKeyRelease("a") }
-                        )
                     }
-                    .padding(.trailing,30)
-                    .padding(.bottom, 60) // 为底部控制器留空间
+                }
+            } else {
+                // 机械臂摄像头画面 - 底部控制区域
+                GeometryReader { geometry in
+                    VStack {
+                        Spacer()
+                        HStack {
+                            // 左下角 - 摄像头缩放控制区域
+                            VStack(spacing: 14) {
+                                // 上方缩放按钮组
+                                HStack(spacing: 20) {
+                                    // 拉近按钮
+                                    Button(action: {}) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "arrow.up.backward.and.arrow.down.forward")
+                                                .font(.system(size: 14, weight: .medium))
+                                                .foregroundColor(Color("accentPurple"))
+                                            Text("拉近")
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundColor(.primary)
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color.white.opacity(0.85))
+                                        .cornerRadius(8)
+                                    }
+                                    .simultaneousGesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { _ in
+                                                // 拉近功能
+                                            }
+                                            .onEnded { _ in
+                                                // 停止拉近
+                                            }
+                                    )
+                                    
+                                    // 远离按钮
+                                    Button(action: {}) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "arrow.down.right.and.arrow.up.left.square")
+                                                .font(.system(size: 14, weight: .medium))
+                                                .foregroundColor(Color("accentPurple"))
+                                            Text("远离")
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundColor(.primary)
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color.white.opacity(0.85))
+                                        .cornerRadius(8)
+                                    }
+                                    .simultaneousGesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { _ in
+                                                // 远离功能
+                                            }
+                                            .onEnded { _ in
+                                                // 停止远离
+                                            }
+                                    )
+                                }
+                                
+                                // 摄像头控制盘
+                                CameraZoomControlPad()
+                            }
+                            .padding(.leading, geometry.size.width * 0.02) // 使用相对定位
+                            .padding(.bottom, geometry.size.height * 0.01) // 减少底部空白
+                            
+                            Spacer()
+                            
+                            // 右下角 - 机械臂控制区域
+                            VStack(spacing: 14) {
+                                // 上方机械臂按钮组
+                                HStack(spacing: 30) {
+                                    // 夹/松按钮
+                                    Button(action: {}) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "scissors")
+                                                .font(.system(size: 14, weight: .medium))
+                                                .foregroundColor(Color("accentPurple"))
+                                            Text("夹/松")
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundColor(.primary)
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color.white.opacity(0.85))
+                                        .cornerRadius(8)
+                                    }
+                                    .simultaneousGesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { _ in
+                                                // 夹/松功能
+                                            }
+                                            .onEnded { _ in
+                                                // 停止
+                                            }
+                                    )
+                                    
+                                    // 放入按钮
+                                    Button(action: {}) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "shippingbox")
+                                                .font(.system(size: 14, weight: .medium))
+                                                .foregroundColor(Color("accentPurple"))
+                                            Text("放入")
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundColor(.primary)
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color.white.opacity(0.85))
+                                        .cornerRadius(8)
+                                    }
+                                    .simultaneousGesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { _ in
+                                                // 放入功能
+                                            }
+                                            .onEnded { _ in
+                                                // 停止
+                                            }
+                                    )
+                                }
+                                
+                                // 机械臂控制盘
+                                RobotArmControlPad()
+                            }
+                            .padding(.trailing, geometry.size.width * 0.02) // 使用相对定位
+                            .padding(.bottom, geometry.size.height * 0.01) // 减少底部空白
+                        }
+                    }
+                }
+            }
+            
+            // 底部分段控制器（姿态和地形控制）- 仅在机器狗摄像头画面显示
+            if selectedCamera == .dogCamera {
+                GeometryReader { geometry in
+                    VStack {
+                        Spacer()
+                        
+                        HStack(spacing: 16) {
+                            // 姿态控制
+                            Picker("姿态", selection: $selectedPosture) {
+                                Text("起立").tag(PostureMode.standUp)
+                                Text("趴下").tag(PostureMode.lieDown)
+                            }
+                            .pickerStyle(.segmented)
+                            .frame(width: 120)
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+                            .onChange(of: selectedPosture) {
+                                robotController.handleKeyPress("z") // 起立/趴下切换
+                            }
+                            
+                            // 地形控制
+                            Picker("地形", selection: $selectedTerrain) {
+                                Text("平地").tag(TerrainMode.flatLand)
+                                Text("越障").tag(TerrainMode.obstacle)
+                            }
+                            .pickerStyle(.segmented)
+                            .frame(width: 120)
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+                            .onChange(of: selectedTerrain) {
+                                switch selectedTerrain {
+                                case .flatLand:
+                                    robotController.handleKeyPress("u") // 抓地模式，适合平地
+                                case .obstacle:
+                                    robotController.handleKeyPress("i") // 越障模式
+                                }
+                            }
+                            
+                            Spacer() // 推到左侧
+                        }
+                        .padding(.leading, geometry.size.width * 0.03) // 使用相对定位
+                        .padding(.bottom, geometry.size.height * 0.01) // 减少底部空白
+                    }
                 }
             }
         }
         .navigationTitle("控制面板")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarBackground(.regularMaterial, for: .navigationBar)
         .onAppear {
             // 自动连接机器狗
             if !robotController.isConnected {
@@ -572,11 +715,123 @@ struct DirectionButton: View {
     }
 }
 
-#Preview("Full Screen Control", traits: .landscapeLeft, body: {
-    // 模拟全屏控制界面
-    NavigationView {
-        DogBotControlView(botName: "绝影lite3-A1", initialBattery: 78)
+// 摄像头指示盘（机械臂摄像头画面 - 左下角）
+struct CameraZoomControlPad: View {
+    var body: some View {
+        ZStack {
+            // 半透明圆形背景
+            Circle()
+                .fill(Color.white.opacity(0.5))
+                .frame(width: 180, height: 180)
+            
+            // 四个方向箭头
+            VStack {
+                CameraDirectionButton(icon: "chevron.up")
+                Spacer()
+                CameraDirectionButton(icon: "chevron.down")
+            }
+            .frame(height: 180)
+            
+            HStack {
+                CameraDirectionButton(icon: "chevron.left")
+                Spacer()
+                CameraDirectionButton(icon: "chevron.right")
+            }
+            .frame(width: 180)
+            
+            // 中心绿色摄像头图标
+            Image(systemName: "camera.fill")
+                .font(.system(size: 36, weight: .medium))
+                .foregroundColor(Color("primaryGreen"))
+        }
     }
-    .navigationViewStyle(.stack) // 强制stack模式，避免split view
-}) 
+}
+
+// 摄像头方向按钮
+struct CameraDirectionButton: View {
+    let icon: String
+    
+    var body: some View {
+        Button(action: {}) {
+            Image(systemName: icon)
+                .font(.system(size: 24, weight: .medium))
+                .foregroundColor(.white)
+                .frame(width: 44, height: 44)
+        }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    // TODO: 摄像头方向控制功能
+                }
+                .onEnded { _ in
+                    // TODO: 停止摄像头方向控制
+                }
+        )
+    }
+}
+
+// 机械臂控制盘（机械臂摄像头画面 - 右下角）  
+struct RobotArmControlPad: View {
+    var body: some View {
+        ZStack {
+            // 半透明圆形背景
+            Circle()
+                .fill(Color.white.opacity(0.5))
+                .frame(width: 180, height: 180)
+            
+            // 上下方向按钮
+            VStack {
+                ArmRotationButton(icon: "chevron.up")
+                Spacer()
+                ArmRotationButton(icon: "chevron.down")
+            }
+            .frame(height: 180)
+            
+            // 左右方向按钮
+            HStack {
+                ArmRotationButton(icon: "arrow.counterclockwise")
+                Spacer()
+                ArmRotationButton(icon: "arrow.clockwise")
+            }
+            .frame(width: 180)
+            
+            // 中心手控图标
+            Image(systemName: "tuningfork")
+                .font(.system(size: 36, weight: .bold))
+                .foregroundColor(Color("primaryGreen"))
+                .scaleEffect(x: -1, y: 1) // 左右镜像
+        }
+    }
+}
+
+
+
+// 机械臂旋转按钮
+struct ArmRotationButton: View {
+    let icon: String
+    
+    var body: some View {
+        Button(action: {}) {
+            Image(systemName: icon)
+                .font(.system(size: 24, weight: .medium))
+                .foregroundColor(.white)
+                .frame(width: 44, height: 44)
+        }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    // 旋转功能
+                }
+                .onEnded { _ in
+                    // 停止旋转
+                }
+        )
+    }
+}
+
+#Preview("Full Screen Control", traits: .landscapeLeft, body: {
+    DogBotControlView(botName: "绝影lite3-A1", initialBattery: 78)
+
+})
+ 
  

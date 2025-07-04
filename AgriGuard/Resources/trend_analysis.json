@@ -1,0 +1,80 @@
+{
+  "title": "趋势分析",
+  "last_update": "2025-05-19T12:05:00Z",
+  "metrics": [
+    {
+      "id": "pest_activity",
+      "name": "虫害活跃度",
+      "current_value": 32,
+      "unit": "%",
+      "weekly_change": 12,
+      "weekly_change_text": "与上周相比 +12%",
+      "trend": "up"
+    },
+    {
+      "id": "disease_activity",
+      "name": "病害活跃度",
+      "current_value": 16,
+      "unit": "%",
+      "weekly_change": -3,
+      "weekly_change_text": "与上周相比 -3%",
+      "trend": "down"
+    },
+    {
+      "id": "crop_health",
+      "name": "作物健康度",
+      "current_value": 84,
+      "unit": "%",
+      "weekly_change": 12,
+      "weekly_change_text": "与上周相比 +12%",
+      "trend": "up"
+    }
+  ],
+  "chart_data": {
+    "time_period": "last_7_days",
+    "data_points": [
+      {
+        "date": "2025-05-13",
+        "pest_activity": 28,
+        "disease_activity": 18,
+        "crop_health": 75
+      },
+      {
+        "date": "2025-05-14",
+        "pest_activity": 29,
+        "disease_activity": 17,
+        "crop_health": 78
+      },
+      {
+        "date": "2025-05-15",
+        "pest_activity": 30,
+        "disease_activity": 16,
+        "crop_health": 80
+      },
+      {
+        "date": "2025-05-16",
+        "pest_activity": 31,
+        "disease_activity": 15,
+        "crop_health": 82
+      },
+      {
+        "date": "2025-05-17",
+        "pest_activity": 31,
+        "disease_activity": 16,
+        "crop_health": 83
+      },
+      {
+        "date": "2025-05-18",
+        "pest_activity": 32,
+        "disease_activity": 16,
+        "crop_health": 84
+      },
+      {
+        "date": "2025-05-19",
+        "pest_activity": 32,
+        "disease_activity": 16,
+        "crop_health": 84
+      }
+    ]
+  }
+} 

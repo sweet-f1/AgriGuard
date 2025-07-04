@@ -14,7 +14,7 @@ struct WeatherConfig {
     static let keyId = "CF5AJ9UXB3"            // 从控制台获取的凭据ID
     
     // Ed25519私钥（PEM格式）
-    // TODO: 私钥安全存储，不要直接硬编码在代码中
+    // TODO: 私钥安全存储，不直接硬编码在代码中
     static let privateKey = """
     -----BEGIN PRIVATE KEY-----
     MC4CAQAwBQYDK2VwBCIEIAmyjsrl15IggJUobVJPCluudDAT8bWWt5+jdHeZAhhw

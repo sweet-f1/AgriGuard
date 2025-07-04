@@ -1,0 +1,44 @@
+[
+  {
+    "id": "region_a",
+    "name": "区域A",
+    "centerLatitude": 30.30661441116419,
+    "centerLongitude": 120.0803089141845,
+    "fields": [
+      {
+        "id": "field_a1",
+        "name": "区域A",
+        "latitude": 30.30661441116419,
+        "longitude": 120.0803089141845
+      }
+    ]
+  },
+  {
+    "id": "region_b",
+    "name": "区域B",
+    "centerLatitude": 30.307174797126223,
+    "centerLongitude": 120.078310668684,
+    "fields": [
+      {
+        "id": "field_b1",
+        "name": "区域B",
+        "latitude": 30.307174797126223,
+        "longitude": 120.078310668684
+      }
+    ]
+  },
+  {
+    "id": "region_c",
+    "name": "区域C",
+    "centerLatitude": 30.305762247858888,
+    "centerLongitude": 120.090994348999,
+    "fields": [
+      {
+        "id": "field_c1",
+        "name": "区域C",
+        "latitude": 30.305762247858888,
+        "longitude": 120.090994348999
+      }
+    ]
+  }
+] 

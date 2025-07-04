@@ -8,6 +8,7 @@
 import SwiftUI
 import CryptoKit
 import Combine
+import MapKit
 
 // Base64URL编码扩展
 extension Data {
@@ -600,6 +601,7 @@ struct WeatherPopupView: View {
     @ObservedObject var weatherService: WeatherService
     @Binding var isPresented: Bool
     let regionName: String
+    let coordinate: CLLocationCoordinate2D
     
     var body: some View {
         VStack(spacing: 0) {
@@ -634,7 +636,7 @@ struct WeatherPopupView: View {
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                     
-                    Text("经度 120.08°E，纬度 30.31°N")
+                    Text("经度 \(String(format: "%.2f", coordinate.longitude))°E，纬度 \(String(format: "%.2f", coordinate.latitude))°N")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white.opacity(0.8))
                 }

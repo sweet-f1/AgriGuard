@@ -167,8 +167,7 @@ struct ContentView: View {
                     }
                 }
             case .info:
-                Text("信息面板内容")
-                    .font(.largeTitle)
+                InfoPanelView()
                     .navigationTitle("信息面板")
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
@@ -197,7 +196,7 @@ struct ContentView: View {
                         showWeatherPopup = false
                     }
                     .overlay(alignment: .topTrailing) {
-                        WeatherPopupView(weatherService: weatherService, isPresented: $showWeatherPopup, regionName: currentRegion)
+                        WeatherPopupView(weatherService: weatherService, isPresented: $showWeatherPopup, regionName: currentRegion, coordinate: currentCoordinate)
                             .padding(.top, 65) // 调整距顶部距离，确保在导航栏下方
                             .padding(.trailing, 30) // 调整距右侧距离
                             .transition(.asymmetric(
@@ -232,6 +231,6 @@ struct ContentView: View {
 
 
 
-#Preview(traits:.landscapeLeft) {
+#Preview(traits:.landscapeRight) {
     ContentView()
 }
