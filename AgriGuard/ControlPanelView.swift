@@ -221,7 +221,7 @@ struct ControlPanelView: View {
     }
 }
 
-#Preview {
+#Preview(traits:.landscapeRight) {
     ControlPanelView()
 } 
  

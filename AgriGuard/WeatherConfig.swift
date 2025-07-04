@@ -25,7 +25,7 @@ struct WeatherConfig {
     static let defaultLocationId = "101010100"
     
     // 获取配置好的WeatherService实例
-    static func createWeatherService() -> WeatherService {
+    @MainActor static func createWeatherService() -> WeatherService {
         if !privateKey.contains("YOUR_") && !keyId.contains("YOUR_") && !projectId.contains("YOUR_") {
             // 使用JWT认证
             return WeatherService(

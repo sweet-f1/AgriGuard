@@ -9,6 +9,31 @@ import SwiftUI
 import Foundation
 import Combine
 
+// hex 颜色扩展
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 6:
+            (a, r, g, b) = (255, (int >> 16) & 0xFF, (int >> 8) & 0xFF, int & 0xFF)
+        case 8:
+            (a, r, g, b) = ((int >> 24) & 0xFF, (int >> 16) & 0xFF, (int >> 8) & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (255, 0, 0, 0)
+        }
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
+}
+
 // MARK: - 数据模型
 struct PestDiseaseRecord: Codable, Identifiable, Sendable {
     let id: String
@@ -232,21 +257,24 @@ struct InfoPanelView: View {
                 .font(.headline)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ScrollView {
-                HStack(alignment: .top, spacing: 24) {
-                    // 左侧：作物信息
-                    CropInfoSection(dataManager: dataManager)
-                        .frame(width: 558)
-                    
-                    // 右侧：趋势分析和工作日志
-                    VStack(spacing: 24) {
-                        TrendAnalysisSection(dataManager: dataManager)
-                        WorkLogSection(dataManager: dataManager)
+            GeometryReader { geometry in
+                ScrollView {
+                    HStack(alignment: .top, spacing: 16) {
+                        // 左侧：作物信息 (固定合理宽度)
+                        CropInfoSection(dataManager: dataManager)
+                            .frame(width: min(geometry.size.width * 0.6, 550))
+                        
+                        // 右侧：趋势分析和工作日志 (占用所有剩余空间)
+                        VStack(spacing: 16) {
+                            TrendAnalysisSection(dataManager: dataManager)
+                            WorkLogSection(dataManager: dataManager)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(width: 324)
+                    .padding(16)
                 }
-                .padding(24)
             }
+            .background(Color(hex: "#F9FAFB"))
         }
     }
 }
@@ -271,7 +299,6 @@ struct CropInfoSection: View {
                         Button("全部作物") { dataManager.selectedCropFilter = "全部作物" }
                         Button("玉米") { dataManager.selectedCropFilter = "玉米" }
                         Button("小麦") { dataManager.selectedCropFilter = "小麦" }
-                        Button("水稻") { dataManager.selectedCropFilter = "水稻" }
                     }, label: {
                         HStack(spacing: 3) {
                             Text(dataManager.selectedCropFilter)
@@ -305,13 +332,16 @@ struct CropInfoSection: View {
             
             // 虫害信息区域
             PestInfoSection(dataManager: dataManager)
+                .padding(.horizontal, 8)
             
             // 病害信息区域
             DiseaseInfoSection(dataManager: dataManager)
+                .padding(.horizontal, 8)
         }
-        .padding(24)
+        .padding(16)
         .background(Color.white)
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -361,19 +391,28 @@ struct PestInfoSection: View {
                     .background(Color("primaryGreen"))
                     .cornerRadius(99)
             }
-            .padding(.horizontal, 16)
             
             // 虫害卡片列表
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(dataManager.filteredPestRecords) { record in
-                        PestDiseaseCard(record: record)
+            if dataManager.filteredPestRecords.isEmpty {
+                Text("暂无虫害记录")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 100)
+                    .frame(alignment: .center)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: 16) {
+                        ForEach(dataManager.filteredPestRecords) { record in
+                            PestDiseaseCard(record: record)
+                        }
                     }
+                    .padding(.horizontal, 16)
                 }
-                .padding(.horizontal, 16)
+                .id(dataManager.selectedCropFilter)
             }
         }
-        .padding(.vertical, 16)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
         .background(Color.gray.opacity(0.05))
         .cornerRadius(8)
     }
@@ -425,25 +464,34 @@ struct DiseaseInfoSection: View {
                     .background(Color("primaryGreen"))
                     .cornerRadius(99)
             }
-            .padding(.horizontal, 16)
             
             // 病害卡片列表
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(dataManager.filteredDiseaseRecords) { record in
-                        PestDiseaseCard(record: record)
+            if dataManager.filteredDiseaseRecords.isEmpty {
+                Text("暂无病害记录")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 100)
+                    .frame(alignment: .center)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: 16) {
+                        ForEach(dataManager.filteredDiseaseRecords) { record in
+                            PestDiseaseCard(record: record)
+                        }
                     }
+                    .padding(.horizontal, 16)
                 }
-                .padding(.horizontal, 16)
+                .id(dataManager.selectedCropFilter)
             }
         }
-        .padding(.vertical, 16)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
         .background(Color.gray.opacity(0.05))
         .cornerRadius(8)
     }
 }
 
-// MARK: - 病虫害卡片
+// MARK: - 病虫害卡片（统一版本）
 struct PestDiseaseCard: View {
     let record: PestDiseaseRecord
     
@@ -463,32 +511,30 @@ struct PestDiseaseCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // 图片和时间
-            VStack(alignment: .leading, spacing: 8) {
-                ZStack {
-                    // 图片
-                    Image(record.imageName)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(height: 271)
-                        .clipped()
-                        .cornerRadius(8)
-                    
-                    // 时间标签（右下角）
-                    VStack {
+            ZStack {
+                // 图片
+                Image(record.imageName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 200)
+                    .clipped()
+                    .cornerRadius(8)
+                
+                // 时间标签（右下角）
+                VStack {
+                    Spacer()
+                    HStack {
                         Spacer()
-                        HStack {
-                            Spacer()
-                            Text(record.dateDisplay)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Color.black.opacity(0.3))
-                                .cornerRadius(8)
-                                .padding(.trailing, 16)
-                                .padding(.bottom, 16)
-                        }
+                        Text(record.dateDisplay)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.black.opacity(0.6))
+                            .cornerRadius(6)
+                            .padding(.trailing, 12)
+                            .padding(.bottom, 12)
                     }
                 }
             }
@@ -497,11 +543,10 @@ struct PestDiseaseCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 // 作物名称和风险等级
                 HStack {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(record.cropName)
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                    }
+                    Text(record.cropName)
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
                     
                     Spacer()
                     
@@ -509,10 +554,10 @@ struct PestDiseaseCard: View {
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
                         .background(riskLevelColor)
-                        .cornerRadius(100)
+                        .cornerRadius(12)
                 }
                 
                 // 描述
@@ -520,23 +565,44 @@ struct PestDiseaseCard: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
+                    .lineLimit(3)
                 
                 // 标签
-                FlowLayout(spacing: 14) {
-                    ForEach(record.tags, id: \.label) { tag in
-                        Text(tag.label)
-                            .font(.caption2)
-                            .fontWeight(.semibold)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.gray.opacity(0.15))
-                            .cornerRadius(100)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        ForEach(Array(record.tags.prefix(2)), id: \.label) { tag in
+                            Text(tag.label)
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(Color.gray.opacity(0.2))
+                                .cornerRadius(8)
+                        }
+                        Spacer()
+                    }
+                    
+                    if record.tags.count > 2 {
+                        HStack(spacing: 6) {
+                            ForEach(Array(record.tags.dropFirst(2)), id: \.label) { tag in
+                                Text(tag.label)
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.secondary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(Color.gray.opacity(0.2))
+                                    .cornerRadius(8)
+                            }
+                            Spacer()
+                        }
                     }
                 }
                 
                 // 治理按钮
                 Button(action: {
-                    // 添加治理日志
+                    print("添加治理日志: \(record.cropName)")
                 }) {
                     Text("添加治理日志")
                         .font(.body)
@@ -545,68 +611,16 @@ struct PestDiseaseCard: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
                         .background(Color("primaryGreen"))
-                        .cornerRadius(9)
+                        .cornerRadius(8)
                 }
             }
         }
-        .frame(width: 380)
-        .padding(16)
+        .frame(width: 280)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
         .background(Color.white)
-        .cornerRadius(9)
-        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-    }
-}
-
-// MARK: - 自定义流式布局
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 10
-    
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = FlowResult(
-            in: proposal.replacingUnspecifiedDimensions().width,
-            subviews: subviews,
-            spacing: spacing
-        )
-        return result.bounds
-    }
-    
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = FlowResult(
-            in: bounds.width,
-            subviews: subviews,
-            spacing: spacing
-        )
-        for (index, subview) in subviews.enumerated() {
-            subview.place(at: result.positions[index], proposal: .unspecified)
-        }
-    }
-    
-    struct FlowResult {
-        var bounds = CGSize.zero
-        var positions: [CGPoint] = []
-        
-        init(in maxWidth: CGFloat, subviews: Subviews, spacing: CGFloat) {
-            var x: CGFloat = 0
-            var y: CGFloat = 0
-            var lineHeight: CGFloat = 0
-            
-            for subview in subviews {
-                let size = subview.sizeThatFits(.unspecified)
-                
-                if x + size.width > maxWidth {
-                    x = 0
-                    y += lineHeight + spacing
-                    lineHeight = 0
-                }
-                
-                positions.append(CGPoint(x: x, y: y))
-                x += size.width + spacing
-                lineHeight = max(lineHeight, size.height)
-            }
-            
-            bounds.width = maxWidth
-            bounds.height = y + lineHeight
-        }
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }
 
@@ -637,9 +651,11 @@ struct TrendAnalysisSection: View {
                 }
             }
         }
-        .padding(24)
+        .padding(16)
+        .frame(maxWidth: .infinity)
         .background(Color.white)
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -687,6 +703,7 @@ struct TrendMetricCard: View {
             }
         }
         .padding(10)
+        .frame(maxWidth: .infinity)
         .background(Color.gray.opacity(0.05))
         .cornerRadius(9)
     }
@@ -738,9 +755,11 @@ struct WorkLogSection: View {
                 }
             }
         }
-        .padding(24)
+        .padding(16)
+        .frame(maxWidth: .infinity)
         .background(Color.white)
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -773,7 +792,7 @@ struct WorkLogCard: View {
     }
     
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(alignment: .top, spacing: 12) {
             // 图标
             ZStack {
                 Circle()
@@ -785,7 +804,7 @@ struct WorkLogCard: View {
             }
             
             // 内容
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 // 标题和时间
                 HStack {
                     Text(log.title)
@@ -827,7 +846,7 @@ struct WorkLogCard: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(Color.gray.opacity(0.05))
         .cornerRadius(9)
     }
 }
