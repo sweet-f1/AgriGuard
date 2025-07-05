@@ -162,6 +162,7 @@ class InfoPanelDataManager: ObservableObject {
     @Published var pestDiseaseData: PestDiseaseData?
     @Published var trendData: TrendAnalysisData?
     @Published var workLogData: WorkLogData?
+    @Published var dogBots: [DogBotInfo] = []
     @Published var selectedCropFilter = "全部作物"
     @Published var selectedRobotFilter = "全部机器狗"
     @Published var isLoading = false
@@ -171,71 +172,142 @@ class InfoPanelDataManager: ObservableObject {
     }
     
     func loadData() {
+        print("🔄 开始加载数据...")
         isLoading = true
         
-        // 使用简单的Task.detached来避免并发问题
-        Task.detached {
+        // 同步加载数据以避免异步问题
+        Task { @MainActor in
             // 加载病虫害数据
-            let pestDiseaseData = await Self.loadPestDiseaseData()
+            self.pestDiseaseData = Self.loadPestDiseaseDataSync()
+            print("📊 病虫害数据加载结果: \(self.pestDiseaseData != nil ? "成功" : "失败")")
+            if let data = self.pestDiseaseData {
+                print("   - 虫害记录: \(data.pestRecords.count)条")
+                print("   - 病害记录: \(data.diseaseRecords.count)条")
+            }
             
             // 加载趋势分析数据
-            let trendData = await Self.loadTrendAnalysisData()
+            self.trendData = Self.loadTrendAnalysisDataSync()
+            print("📈 趋势分析数据加载结果: \(self.trendData != nil ? "成功" : "失败")")
             
             // 加载工作日志数据
-            let workLogData = await Self.loadWorkLogData()
+            self.workLogData = Self.loadWorkLogDataSync()
+            print("📝 工作日志数据加载结果: \(self.workLogData != nil ? "成功" : "失败")")
             
-            // 在主线程更新UI
-            await MainActor.run {
-                self.pestDiseaseData = pestDiseaseData
-                self.trendData = trendData
-                self.workLogData = workLogData
-                if let workLog = workLogData {
-                    self.selectedRobotFilter = workLog.filter.selected
-                }
-                self.isLoading = false
+            // 加载机器狗数据
+            self.dogBots = Self.loadDogBotsDataSync()
+            print("🤖 机器狗数据加载结果: \(self.dogBots.count)个")
+            
+            if let workLog = self.workLogData {
+                self.selectedRobotFilter = workLog.filter.selected
             }
+            
+            self.isLoading = false
+            print("✅ 数据加载完成，UI已更新")
+            
+            // 强制刷新UI
+            self.objectWillChange.send()
         }
     }
     
-    // 静态方法来加载数据，避免并发问题
-    private static func loadPestDiseaseData() async -> PestDiseaseData? {
-        guard let url = Bundle.main.url(forResource: "pest_disease_info", withExtension: "json"),
-              let data = try? Data(contentsOf: url) else {
+    // 同步版本的数据加载方法
+    private static func loadPestDiseaseDataSync() -> PestDiseaseData? {
+        print("🔍 尝试加载pest_disease_info.json...")
+        
+        guard let url = Bundle.main.url(forResource: "pest_disease_info", withExtension: "json") else {
+            print("❌ 找不到pest_disease_info.json文件")
             return nil
         }
-        return try? JSONDecoder().decode(PestDiseaseData.self, from: data)
+        print("📄 找到文件路径: \(url.path)")
+        
+        guard let data = try? Data(contentsOf: url) else {
+            print("❌ 无法读取pest_disease_info.json文件内容")
+            return nil
+        }
+        print("📊 文件大小: \(data.count) bytes")
+        
+        do {
+            let decodedData = try JSONDecoder().decode(PestDiseaseData.self, from: data)
+            print("✅ JSON解析成功")
+            return decodedData
+        } catch {
+            print("❌ JSON解析失败: \(error)")
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("📄 JSON内容前200字符: \(String(jsonString.prefix(200)))")
+            }
+            return nil
+        }
     }
     
-    private static func loadTrendAnalysisData() async -> TrendAnalysisData? {
+    private static func loadTrendAnalysisDataSync() -> TrendAnalysisData? {
         guard let url = Bundle.main.url(forResource: "trend_analysis", withExtension: "json"),
               let data = try? Data(contentsOf: url) else {
+            print("❌ 找不到trend_analysis.json文件")
             return nil
         }
-        return try? JSONDecoder().decode(TrendAnalysisData.self, from: data)
+        do {
+            return try JSONDecoder().decode(TrendAnalysisData.self, from: data)
+        } catch {
+            print("❌ 趋势分析数据解析失败: \(error)")
+            return nil
+        }
     }
     
-    private static func loadWorkLogData() async -> WorkLogData? {
+    private static func loadWorkLogDataSync() -> WorkLogData? {
         guard let url = Bundle.main.url(forResource: "work_logs", withExtension: "json"),
               let data = try? Data(contentsOf: url) else {
+            print("❌ 找不到work_logs.json文件")
             return nil
         }
-        return try? JSONDecoder().decode(WorkLogData.self, from: data)
+        do {
+            return try JSONDecoder().decode(WorkLogData.self, from: data)
+        } catch {
+            print("❌ 工作日志数据解析失败: \(error)")
+            return nil
+        }
+    }
+    
+    private static func loadDogBotsDataSync() -> [DogBotInfo] {
+        guard let url = Bundle.main.url(forResource: "dogbots", withExtension: "json"),
+              let data = try? Data(contentsOf: url) else {
+            print("❌ 找不到dogbots.json文件")
+            return []
+        }
+        do {
+            return try JSONDecoder().decode([DogBotInfo].self, from: data)
+        } catch {
+            print("❌ 机器狗数据解析失败: \(error)")
+            return []
+        }
     }
     
     var filteredPestRecords: [PestDiseaseRecord] {
-        guard let data = pestDiseaseData else { return [] }
-        if selectedCropFilter == "全部作物" {
-            return data.pestRecords
+        guard let data = pestDiseaseData else { 
+            print("⚠️ pestDiseaseData为空")
+            return [] 
         }
-        return data.pestRecords.filter { $0.cropName.contains(selectedCropFilter) }
+        let filtered: [PestDiseaseRecord]
+        if selectedCropFilter == "全部作物" {
+            filtered = data.pestRecords
+        } else {
+            filtered = data.pestRecords.filter { $0.cropName.contains(selectedCropFilter) }
+        }
+        print("🐛 虫害记录筛选结果: \(filtered.count)条 (筛选条件: \(selectedCropFilter))")
+        return filtered
     }
     
     var filteredDiseaseRecords: [PestDiseaseRecord] {
-        guard let data = pestDiseaseData else { return [] }
-        if selectedCropFilter == "全部作物" {
-            return data.diseaseRecords
+        guard let data = pestDiseaseData else { 
+            print("⚠️ pestDiseaseData为空") 
+            return [] 
         }
-        return data.diseaseRecords.filter { $0.cropName.contains(selectedCropFilter) }
+        let filtered: [PestDiseaseRecord]
+        if selectedCropFilter == "全部作物" {
+            filtered = data.diseaseRecords
+        } else {
+            filtered = data.diseaseRecords.filter { $0.cropName.contains(selectedCropFilter) }
+        }
+        print("🦠 病害记录筛选结果: \(filtered.count)条 (筛选条件: \(selectedCropFilter))")
+        return filtered
     }
     
     var filteredWorkLogs: [WorkLog] {
@@ -245,36 +317,63 @@ class InfoPanelDataManager: ObservableObject {
         }
         return data.logs.filter { $0.robotId == selectedRobotFilter }
     }
+    
+    // 机器人筛选选项
+    var robotFilterOptions: [String] {
+        let names = dogBots.map { $0.name }
+        return ["全部机器狗"] + names
+    }
 }
 
 // MARK: - 主要视图
 struct InfoPanelView: View {
     @StateObject private var dataManager = InfoPanelDataManager()
+    @Binding var selectedRecord: PestDiseaseRecord?
     
     var body: some View {
-        if dataManager.isLoading {
-            ProgressView("加载中...")
-                .font(.headline)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            GeometryReader { geometry in
-                ScrollView {
-                    HStack(alignment: .top, spacing: 16) {
-                        // 左侧：作物信息 (固定合理宽度)
-                        CropInfoSection(dataManager: dataManager)
-                            .frame(width: min(geometry.size.width * 0.6, 550))
-                        
-                        // 右侧：趋势分析和工作日志 (占用所有剩余空间)
-                        VStack(spacing: 16) {
-                            TrendAnalysisSection(dataManager: dataManager)
-                            WorkLogSection(dataManager: dataManager)
-                        }
-                        .frame(maxWidth: .infinity)
+        Group {
+            if dataManager.isLoading {
+                ProgressView("加载中...")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if dataManager.pestDiseaseData == nil {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.largeTitle)
+                        .foregroundColor(.orange)
+                    Text("数据加载失败")
+                        .font(.headline)
+                    Text("请检查控制台输出以获取详细信息")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Button("重新加载") {
+                        dataManager.loadData()
                     }
-                    .padding(16)
+                    .padding()
+                    .background(Color("primaryGreen"))
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                GeometryReader { geometry in
+                    ScrollView {
+                        HStack(alignment: .top, spacing: 16) {
+                            // 左侧：作物信息 (固定合理宽度)
+                            CropInfoSection(dataManager: dataManager, selectedRecord: $selectedRecord)
+                                .frame(width: min(geometry.size.width * 0.6, 550))
+                            // 右侧：趋势分析和工作日志 (占用所有剩余空间)
+                            VStack(spacing: 16) {
+                                TrendAnalysisSection(dataManager: dataManager)
+                                WorkLogSection(dataManager: dataManager)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .padding(16)
+                    }
+                }
+                .background(Color(hex: "#F9FAFB"))
             }
-            .background(Color(hex: "#F9FAFB"))
         }
     }
 }
@@ -282,6 +381,7 @@ struct InfoPanelView: View {
 // MARK: - 作物信息区域
 struct CropInfoSection: View {
     @ObservedObject var dataManager: InfoPanelDataManager
+    @Binding var selectedRecord: PestDiseaseRecord?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 19) {
@@ -331,11 +431,11 @@ struct CropInfoSection: View {
             }
             
             // 虫害信息区域
-            PestInfoSection(dataManager: dataManager)
+            PestInfoSection(dataManager: dataManager, selectedRecord: $selectedRecord)
                 .padding(.horizontal, 8)
             
             // 病害信息区域
-            DiseaseInfoSection(dataManager: dataManager)
+            DiseaseInfoSection(dataManager: dataManager, selectedRecord: $selectedRecord)
                 .padding(.horizontal, 8)
         }
         .padding(16)
@@ -348,6 +448,7 @@ struct CropInfoSection: View {
 // MARK: - 虫害信息区域
 struct PestInfoSection: View {
     @ObservedObject var dataManager: InfoPanelDataManager
+    @Binding var selectedRecord: PestDiseaseRecord?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -403,7 +504,9 @@ struct PestInfoSection: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: 16) {
                         ForEach(dataManager.filteredPestRecords) { record in
-                            PestDiseaseCard(record: record)
+                            PestDiseaseCard(record: record) { tappedRecord in
+                                selectedRecord = tappedRecord
+                            }
                         }
                     }
                     .padding(.horizontal, 16)
@@ -421,6 +524,7 @@ struct PestInfoSection: View {
 // MARK: - 病害信息区域
 struct DiseaseInfoSection: View {
     @ObservedObject var dataManager: InfoPanelDataManager
+    @Binding var selectedRecord: PestDiseaseRecord?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -476,7 +580,9 @@ struct DiseaseInfoSection: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: 16) {
                         ForEach(dataManager.filteredDiseaseRecords) { record in
-                            PestDiseaseCard(record: record)
+                            PestDiseaseCard(record: record) { tappedRecord in
+                                selectedRecord = tappedRecord
+                            }
                         }
                     }
                     .padding(.horizontal, 16)
@@ -494,6 +600,7 @@ struct DiseaseInfoSection: View {
 // MARK: - 病虫害卡片（统一版本）
 struct PestDiseaseCard: View {
     let record: PestDiseaseRecord
+    let onTreatmentTap: (PestDiseaseRecord) -> Void
     
     var riskLevelColor: Color {
         switch record.riskLevel {
@@ -509,7 +616,7 @@ struct PestDiseaseCard: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 4) {
             // 图片和时间
             ZStack {
                 // 图片
@@ -519,7 +626,7 @@ struct PestDiseaseCard: View {
                     .frame(height: 200)
                     .clipped()
                     .cornerRadius(8)
-                
+                    .padding(.top, 12)
                 // 时间标签（右下角）
                 VStack {
                     Spacer()
@@ -602,7 +709,8 @@ struct PestDiseaseCard: View {
                 
                 // 治理按钮
                 Button(action: {
-                    print("添加治理日志: \(record.cropName)")
+                    print("Treatment button tapped for: \(record.cropName)")
+                    onTreatmentTap(record)
                 }) {
                     Text("添加治理日志")
                         .font(.body)
@@ -724,9 +832,9 @@ struct WorkLogSection: View {
                 Spacer()
                 
                 // 机器狗筛选器
-                if let workLogData = dataManager.workLogData {
+                if dataManager.workLogData != nil {
                     SwiftUI.Menu(content: {
-                        ForEach(workLogData.filter.options, id: \.self) { option in
+                        ForEach(dataManager.robotFilterOptions, id: \.self) { option in
                             Button(option) {
                                 dataManager.selectedRobotFilter = option
                             }
@@ -851,6 +959,87 @@ struct WorkLogCard: View {
     }
 }
 
+// MARK: - 治理日志弹窗
+struct TreatmentLogModal: View {
+    let record: PestDiseaseRecord
+    @Binding var isPresented: Bool
+    @State private var selectedDate = Date()
+    @State private var treatmentNotes = ""
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // 顶部栏
+            HStack {
+                Button("取消") {
+                    isPresented = false
+                }
+                .foregroundColor(.secondary)
+                Spacer()
+                Text(record.cropName)
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                Spacer()
+                Button("确认") {
+                    saveTreatmentLog()
+                    isPresented = false
+                }
+                .foregroundColor(Color("primaryGreen"))
+                .fontWeight(.semibold)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 8)
+            Divider()
+            // 日历
+            VStack(alignment: .center, spacing: 0) {
+                DatePicker("选择日期", selection: $selectedDate, displayedComponents: .date)
+                    .datePickerStyle(GraphicalDatePickerStyle())
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .accentColor(Color("primaryGreen"))
+                    .environment(\.locale, Locale(identifier: "zh_CN"))
+            }
+            .padding(.horizontal, 20)
+            Divider()
+            // 文本输入
+            VStack(alignment: .leading, spacing: 8) {
+                Text("治理日志")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .padding(.top, 8)
+                ZStack(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.08))
+                        .frame(height: 90)
+                    TextEditor(text: $treatmentNotes)
+                        .padding(8)
+                        .background(Color.clear)
+                        .frame(height: 90)
+                    if treatmentNotes.isEmpty {
+                        Text("请输入治理内容…")
+                            .foregroundColor(.gray)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 18)
+        }
+        .frame(width: 420)
+    }
+
+    private func saveTreatmentLog() {
+        print("💾 保存治理日志:")
+        print("- 作物: \(record.cropName)")
+        print("- 日期: \(selectedDate)")
+        print("- 内容: \(treatmentNotes)")
+        // 这里可以添加实际的保存逻辑
+    }
+}
+
 #Preview(traits:.landscapeRight) {
-    InfoPanelView()
+    InfoPanelView(selectedRecord: .constant(nil))
 } 

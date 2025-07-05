@@ -141,6 +141,16 @@ struct FieldMapView: View {
                     Marker(field.name, coordinate: field.coordinate)
                         .tint(.green)
                 }
+                // 固定在地图上的绿色方块
+                MapGreenSquare(coordinates: [
+                    CLLocationCoordinate2D(latitude: 30.306879552855463, longitude: 120.08018821477891),
+                    CLLocationCoordinate2D(latitude: 30.306819346071464, longitude: 120.07974296808246),
+                    CLLocationCoordinate2D(latitude: 30.306381687953355, longitude: 120.07983416318895),
+                    CLLocationCoordinate2D(latitude: 30.30644189500615, longitude: 120.0802928209305)
+                ])
+                // 小麦A标签
+                Marker("小麦A", coordinate: CLLocationCoordinate2D(latitude: 30.306625410506264, longitude: 120.08002594113351))
+                    .tint(.orange)
             }
             .onChange(of: selectedRegion.id) { 
                 // 当区域改变时，移动地图中心
@@ -483,6 +493,15 @@ struct FieldDashboardView: View {
                 selectedRegion = regionLoader.regions[0]
             }
         }
+    }
+}
+
+struct MapGreenSquare: MapContent {
+    let coordinates: [CLLocationCoordinate2D]
+    var body: some MapContent {
+        MapPolygon(coordinates: coordinates)
+            .foregroundStyle(.green.opacity(0.3))
+            .stroke(.green, lineWidth: 2)
     }
 }
 
