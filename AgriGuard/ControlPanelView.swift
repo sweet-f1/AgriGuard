@@ -166,43 +166,45 @@ struct ControlPanelView: View {
     ]
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                // 机器狗卡片网格
-                LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(dogBotLoader.bots) { bot in
-                        DogBotCard(bot: bot) {
-                            selectedBot = bot
-                            showWiFiAlert = true
+        ZStack {
+            ScrollView {
+                VStack(spacing: 16) {
+                    // 机器狗卡片网格
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(dogBotLoader.bots) { bot in
+                            DogBotCard(bot: bot) {
+                                selectedBot = bot
+                                showWiFiAlert = true
+                            }
                         }
                     }
+                    
+                    // 添加机器狗长条按钮
+                    AddDogBotCard {
+                        // TODO: 添加机器狗逻辑
+                        print("添加机器狗")
+                    }
                 }
-                
-                // 添加机器狗长条按钮
-                AddDogBotCard {
-                    // TODO: 添加机器狗逻辑
-                    print("添加机器狗")
+                .padding(16)
+            }
+            .background(Color(hex: "#F9FAFB"))
+            .onAppear {
+                dogBotLoader.loadBots()
+            }
+            .alert("WiFi 连接提示", isPresented: $showWiFiAlert) {
+                Button("确认") {
+                    showWiFiAlert = false
+                    navigateToControl = true
                 }
+            } message: {
+                Text("请确保已连接\(selectedBot?.name ?? "机器狗")的WiFi以保证它的可用性。")
             }
-            .padding(16)
-        }
-        .background(Color(hex: "#F9FAFB"))
-        .onAppear {
-            dogBotLoader.loadBots()
-        }
-        .alert("WiFi 连接提示", isPresented: $showWiFiAlert) {
-            Button("确认") {
-                showWiFiAlert = false
-                navigateToControl = true
-            }
-        } message: {
-            Text("请确保已连接\(selectedBot?.name ?? "机器狗")的WiFi以保证它的可用性。")
-        }
-        .tint(Color("primaryGreen"))
-        .fullScreenCover(isPresented: $navigateToControl) {
-            NavigationView {
-                if let bot = selectedBot {
-                    DogBotControlView(botName: bot.name, initialBattery: bot.battery)
+            .tint(Color("primaryGreen"))
+            .fullScreenCover(isPresented: $navigateToControl) {
+                NavigationView {
+                    if let bot = selectedBot {
+                        DogBotControlView(botName: bot.name, initialBattery: bot.battery)
+                    }
                 }
             }
         }

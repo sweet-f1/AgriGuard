@@ -198,10 +198,10 @@ class InfoPanelDataManager: ObservableObject {
             print("🤖 机器狗数据加载结果: \(self.dogBots.count)个")
             
             if let workLog = self.workLogData {
-                self.selectedRobotFilter = workLog.filter.selected
-            }
+                    self.selectedRobotFilter = workLog.filter.selected
+                }
             
-            self.isLoading = false
+                self.isLoading = false
             print("✅ 数据加载完成，UI已更新")
             
             // 强制刷新UI
@@ -332,9 +332,9 @@ struct InfoPanelView: View {
     
     var body: some View {
         Group {
-            if dataManager.isLoading {
-                ProgressView("加载中...")
-                    .font(.headline)
+        if dataManager.isLoading {
+            ProgressView("加载中...")
+                .font(.headline)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if dataManager.pestDiseaseData == nil {
                 VStack(spacing: 16) {
@@ -355,24 +355,24 @@ struct InfoPanelView: View {
                     .cornerRadius(8)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                GeometryReader { geometry in
-                    ScrollView {
-                        HStack(alignment: .top, spacing: 16) {
-                            // 左侧：作物信息 (固定合理宽度)
+        } else {
+            GeometryReader { geometry in
+                ScrollView {
+                    HStack(alignment: .top, spacing: 16) {
+                        // 左侧：作物信息 (固定合理宽度)
                             CropInfoSection(dataManager: dataManager, selectedRecord: $selectedRecord)
-                                .frame(width: min(geometry.size.width * 0.6, 550))
-                            // 右侧：趋势分析和工作日志 (占用所有剩余空间)
-                            VStack(spacing: 16) {
-                                TrendAnalysisSection(dataManager: dataManager)
-                                WorkLogSection(dataManager: dataManager)
-                            }
-                            .frame(maxWidth: .infinity)
+                            .frame(width: min(geometry.size.width * 0.6, 550))
+                        // 右侧：趋势分析和工作日志 (占用所有剩余空间)
+                        VStack(spacing: 16) {
+                            TrendAnalysisSection(dataManager: dataManager)
+                            WorkLogSection(dataManager: dataManager)
                         }
-                        .padding(16)
+                        .frame(maxWidth: .infinity)
                     }
+                    .padding(16)
                 }
-                .background(Color(hex: "#F9FAFB"))
+            }
+            .background(Color(hex: "#F9FAFB"))
             }
         }
     }
@@ -965,7 +965,7 @@ struct TreatmentLogModal: View {
     @Binding var isPresented: Bool
     @State private var selectedDate = Date()
     @State private var treatmentNotes = ""
-
+    
     var body: some View {
         VStack(spacing: 0) {
             // 顶部栏
@@ -1005,32 +1005,32 @@ struct TreatmentLogModal: View {
             Divider()
             // 文本输入
             VStack(alignment: .leading, spacing: 8) {
-                Text("治理日志")
-                    .font(.headline)
-                    .fontWeight(.semibold)
+                        Text("治理日志")
+                            .font(.headline)
+                            .fontWeight(.semibold)
                     .padding(.top, 8)
                 ZStack(alignment: .topLeading) {
-                    RoundedRectangle(cornerRadius: 8)
+                                RoundedRectangle(cornerRadius: 8)
                         .fill(Color.gray.opacity(0.08))
                         .frame(height: 90)
                     TextEditor(text: $treatmentNotes)
                         .padding(8)
                         .background(Color.clear)
                         .frame(height: 90)
-                    if treatmentNotes.isEmpty {
+                                    if treatmentNotes.isEmpty {
                         Text("请输入治理内容…")
                             .foregroundColor(.gray)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 12)
+                                    }
                     }
                 }
-            }
             .padding(.horizontal, 20)
             .padding(.bottom, 18)
         }
         .frame(width: 420)
     }
-
+    
     private func saveTreatmentLog() {
         print("💾 保存治理日志:")
         print("- 作物: \(record.cropName)")

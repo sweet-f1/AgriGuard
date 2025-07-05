@@ -370,6 +370,9 @@ struct ContentView: View {
         }
         .onAppear {
             weatherService.fetchWeatherForCoordinate(latitude: currentCoordinate.latitude, longitude: currentCoordinate.longitude)
+            NotificationCenter.default.addObserver(forName: NSNotification.Name("SwitchToControlPanelTab"), object: nil, queue: .main) { _ in
+                selectedSidebar = .control
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RegionChanged"))) { notification in
             if let userInfo = notification.userInfo,

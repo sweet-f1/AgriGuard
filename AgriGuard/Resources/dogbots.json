@@ -5,8 +5,8 @@
     "battery": 78,
     "status": "巡检中",
     "records": 11,
-    "latitude": 30.3066,
-    "longitude": 120.0803,
+    "latitude": 30.30668040719804,
+    "longitude": 120.0802445411682,
     "lastUpdate": "2025-06-30T12:00:00Z"
   },
   {
@@ -15,8 +15,8 @@
     "battery": 20,
     "status": "巡检中",
     "records": 84,
-    "latitude": 30.3067,
-    "longitude": 120.0805,
+    "latitude": 30.30616170033062,
+    "longitude": 120.0798904895782,
     "lastUpdate": "2025-06-30T12:00:00Z"
   },
   {
@@ -25,8 +25,8 @@
     "battery": 56,
     "status": "巡检中",
     "records": 36,
-    "latitude": 30.3068,
-    "longitude": 120.0807,
+    "latitude": 30.30661093768749,
+    "longitude": 120.0806495547294,
     "lastUpdate": "2025-06-30T12:00:00Z"
   },
   {
@@ -35,8 +35,8 @@
     "battery": 89,
     "status": "巡检中",
     "records": 17,
-    "latitude": 30.3069,
-    "longitude": 120.0809,
+    "latitude": 30.30603665451449,
+    "longitude": 120.0804376602173,
     "lastUpdate": "2025-06-30T12:00:00Z"
   }
 ] 

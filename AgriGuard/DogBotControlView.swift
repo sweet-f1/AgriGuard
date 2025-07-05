@@ -146,6 +146,7 @@ struct DogBotControlView: View {
     @State private var selectedCamera: CameraMode = .dogCamera
     @State private var selectedPosture: PostureMode = .standUp
     @State private var selectedTerrain: TerrainMode = .flatLand
+    @State private var showLoading = true
     
     enum CameraMode: String, CaseIterable {
         case dogCamera = "机器狗摄像头画面"
@@ -261,50 +262,40 @@ struct DogBotControlView: View {
             if selectedCamera == .dogCamera {
                 // 机器狗摄像头画面 - 方向控制盘（右下角）
                 GeometryReader { geometry in
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
                             VStack(spacing: 20) {
-                        // 左转右转控制条
+                                // 左转右转控制条
                                 HStack(spacing: 46) {
-                            // 左转按钮
+                                    // 左转按钮
                                     Button(action: {}) {
-                                Image(systemName: "arrow.counterclockwise")
-                                    .font(.system(size: 20, weight: .medium))
-                                    .foregroundColor(.white)
+                                        Image(systemName: "arrow.counterclockwise")
+                                            .font(.system(size: 20, weight: .medium))
+                                            .foregroundColor(.white)
                                             .frame(width: 55, height: 40)
                                     }
                                     .simultaneousGesture(
                                         DragGesture(minimumDistance: 0)
-                                            .onChanged { _ in
-                                                robotController.handleKeyPress("q") // 左转
-                                            }
-                                            .onEnded { _ in
-                                                robotController.handleKeyRelease("q") // 停止左转
-                                            }
+                                            .onChanged { _ in robotController.handleKeyPress("q") }
+                                            .onEnded { _ in robotController.handleKeyRelease("q") }
                                     )
-                            
-                            // 右转按钮
+                                    // 右转按钮
                                     Button(action: {}) {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 20, weight: .medium))
-                                    .foregroundColor(.white)
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.system(size: 20, weight: .medium))
+                                            .foregroundColor(.white)
                                             .frame(width: 55, height: 40)
                                     }
                                     .simultaneousGesture(
                                         DragGesture(minimumDistance: 0)
-                                            .onChanged { _ in
-                                                robotController.handleKeyPress("e") // 右转
-                                            }
-                                            .onEnded { _ in
-                                                robotController.handleKeyRelease("e") // 停止右转
-                                            }
+                                            .onChanged { _ in robotController.handleKeyPress("e") }
+                                            .onEnded { _ in robotController.handleKeyRelease("e") }
                                     )
                                 }
                                 .background(Color.white.opacity(0.5))
                                 .cornerRadius(40)
-                                
                                 // 原有的方向控制盘
                                 DirectionControlPad(
                                     onForward: { robotController.handleKeyPress("w") },
@@ -315,12 +306,13 @@ struct DogBotControlView: View {
                                     onStopLeftRight: { robotController.handleKeyRelease("a") }
                                 )
                             }
-                            .padding(.trailing, geometry.size.width * 0.02) // 使用相对定位
-                            .padding(.bottom, geometry.size.height * 0.01) // 减少底部空白
+                            .padding(.trailing, geometry.size.width * 0.02)
+                            .padding(.bottom, geometry.size.height * 0.01)
                         }
                     }
                 }
-            } else {
+            }
+            if selectedCamera == .armCamera {
                 // 机械臂摄像头画面 - 底部控制区域
                 GeometryReader { geometry in
                     VStack {
@@ -347,14 +339,9 @@ struct DogBotControlView: View {
                                     }
                                     .simultaneousGesture(
                                         DragGesture(minimumDistance: 0)
-                                            .onChanged { _ in
-                                                // 拉近功能
-                                            }
-                                            .onEnded { _ in
-                                                // 停止拉近
-                                            }
+                                            .onChanged { _ in /* 拉近功能 */ }
+                                            .onEnded { _ in /* 停止拉近 */ }
                                     )
-                                    
                                     // 远离按钮
                                     Button(action: {}) {
                                         HStack(spacing: 6) {
@@ -372,23 +359,16 @@ struct DogBotControlView: View {
                                     }
                                     .simultaneousGesture(
                                         DragGesture(minimumDistance: 0)
-                                            .onChanged { _ in
-                                                // 远离功能
-                                            }
-                                            .onEnded { _ in
-                                                // 停止远离
-                                            }
+                                            .onChanged { _ in /* 远离功能 */ }
+                                            .onEnded { _ in /* 停止远离 */ }
                                     )
                                 }
-                                
                                 // 摄像头控制盘
                                 CameraZoomControlPad()
                             }
-                            .padding(.leading, geometry.size.width * 0.02) // 使用相对定位
-                            .padding(.bottom, geometry.size.height * 0.01) // 减少底部空白
-                            
+                            .padding(.leading, geometry.size.width * 0.02)
+                            .padding(.bottom, geometry.size.height * 0.01)
                             Spacer()
-                            
                             // 右下角 - 机械臂控制区域
                             VStack(spacing: 14) {
                                 // 上方机械臂按钮组
@@ -410,14 +390,9 @@ struct DogBotControlView: View {
                                     }
                                     .simultaneousGesture(
                                         DragGesture(minimumDistance: 0)
-                                            .onChanged { _ in
-                                                // 夹/松功能
-                                            }
-                                            .onEnded { _ in
-                                                // 停止
-                                            }
+                                            .onChanged { _ in /* 夹/松功能 */ }
+                                            .onEnded { _ in /* 停止 */ }
                                     )
-                                    
                                     // 放入按钮
                                     Button(action: {}) {
                                         HStack(spacing: 6) {
@@ -435,20 +410,15 @@ struct DogBotControlView: View {
                                     }
                                     .simultaneousGesture(
                                         DragGesture(minimumDistance: 0)
-                                            .onChanged { _ in
-                                                // 放入功能
-                                            }
-                                            .onEnded { _ in
-                                                // 停止
-                                            }
+                                            .onChanged { _ in /* 放入功能 */ }
+                                            .onEnded { _ in /* 停止 */ }
                                     )
                                 }
-                                
                                 // 机械臂控制盘
                                 RobotArmControlPad()
                             }
-                            .padding(.trailing, geometry.size.width * 0.02) // 使用相对定位
-                            .padding(.bottom, geometry.size.height * 0.01) // 减少底部空白
+                            .padding(.trailing, geometry.size.width * 0.02)
+                            .padding(.bottom, geometry.size.height * 0.01)
                         }
                     }
                 }
@@ -497,6 +467,10 @@ struct DogBotControlView: View {
                     }
                 }
             }
+            if showLoading {
+                DogBotLoadingOverlay()
+                    .zIndex(1000)
+            }
         }
         .navigationTitle("控制面板")
         .navigationBarTitleDisplayMode(.inline)
@@ -507,6 +481,11 @@ struct DogBotControlView: View {
             // 自动连接机器狗
             if !robotController.isConnected {
                 robotController.connect()
+            }
+            if showLoading {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 17) {
+                    showLoading = false
+                }
             }
         }
         .toolbar {
@@ -803,8 +782,6 @@ struct RobotArmControlPad: View {
         }
     }
 }
-
-
 
 // 机械臂旋转按钮
 struct ArmRotationButton: View {

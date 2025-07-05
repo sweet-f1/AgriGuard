@@ -1,0 +1,73 @@
+[
+  {
+    "id": "wheatA",
+    "name": "小麦A",
+    "coordinates": [
+      { "longitude": 120.0806696712970, "latitude": 30.30672208888074 },
+      { "longitude": 120.0807099044323, "latitude": 30.30652294290343 },
+      { "longitude": 120.0803531706333, "latitude": 30.30645810459097 },
+      { "longitude": 120.0802968442440, "latitude": 30.30666188200005 }
+    ]
+  },
+  {
+    "id": "wheatB",
+    "name": "小麦B",
+    "coordinates": [
+      { "longitude": 120.0807501375675, "latitude": 30.30650962789636 },
+      { "longitude": 120.0807957351208, "latitude": 30.30630353451232 },
+      { "longitude": 120.0803947448730, "latitude": 30.30623522256473 },
+      { "longitude": 120.0803558528423, "latitude": 30.30643494804039 }
+    ]
+  },
+  {
+    "id": "wheatC",
+    "name": "小麦C",
+    "coordinates": [
+      { "longitude": 120.0801868736744, "latitude": 30.30687955285546 },
+      { "longitude": 120.0802378356457, "latitude": 30.30667809154849 },      
+      { "longitude": 120.0797872245312, "latitude": 30.30661093768749 },
+      { "longitude": 120.0797443091869, "latitude": 30.30682166171768 }
+    ]
+  },
+  {
+    "id": "wheatD",
+    "name": "小麦D",
+    "coordinates": [
+      { "longitude": 120.0802405178547, "latitude": 30.30665493504989 },
+      { "longitude": 120.0802780687809, "latitude": 30.30645347328128 },
+      { "longitude": 120.0798676908016, "latitude": 30.3063863192664 },
+      { "longitude": 120.0798220932484, "latitude": 30.30658778117302 }
+    ]
+  },
+  {
+    "id": "wheatE",
+    "name": "小麦E",
+    "coordinates": [
+      { "longitude": 120.0802780687809, "latitude": 30.30642800107415 },
+      { "longitude": 120.0803263485431, "latitude": 30.30623580147972 },
+      { "longitude": 120.0799132883548, "latitude": 30.30616864731573 },
+      { "longitude": 120.0798676908016, "latitude": 30.30637010966971 }
+    ]
+  },
+  {
+    "id": "cornA",
+    "name": "玉米A",
+    "coordinates": [
+      { "longitude": 120.0807809829712, "latitude": 30.30628211466948 },
+      { "longitude": 120.0808158516884, "latitude": 30.30607833647091 },
+      { "longitude": 120.0804510712623, "latitude": 30.30602970752003 },
+      { "longitude": 120.0804108381271, "latitude": 30.30621496053722 }
+    ]
+  },
+  {
+    "id": "cornB",
+    "name": "玉米B",
+    "coordinates": [
+      { "longitude": 120.0803303718567, "latitude": 30.30621032921603 },
+      { "longitude": 120.0803679227829, "latitude": 30.30602970752003 },
+      { "longitude": 120.0799494981765, "latitude": 30.30595792188175 },
+      { "longitude": 120.0799173116684, "latitude": 30.30614780635893 }
+    ]
+  }
+] 
+ 
